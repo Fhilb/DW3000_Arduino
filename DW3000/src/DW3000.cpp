@@ -88,33 +88,37 @@ uint32_t DW3000Class::sendBytes(int b[], int lenB, int recLen) { //WORKING
     return val;
 }
 
-uint32_t DW3000Class::readOrWriteFullAddress(int base[], int base_len, int sub[], int sub_len, int data[], int data_len, int readWriteBit) {
+uint32_t DW3000Class::readOrWriteFullAddress(int *base, int base_len, int *sub, int sub_len, int *data, int data_len, int readWriteBit) {
     DW3000Class::readOrWriteFullAddress(base, base_len, sub, sub_len, data, data_len, readWriteBit, false);
 }
 
-uint32_t DW3000Class::readOrWriteFullAddress(int base[], int base_len, int sub[], int sub_len, int data[], int data_len, int readWriteBit, bool quiet) {
+uint32_t DW3000Class::readOrWriteFullAddress(int *base, int base_len, int *sub, int sub_len, int *data, int data_len, int readWriteBit, bool quiet) {
+    Serial.println("base: ");
+    for (int i = 0; i < 5; i++) {
+        Serial.println(base[i]);
+    }
     if (quiet) Serial.end();
     int fill_base_len = 5;
+    int num_zeros = fill_base_len - base_len;
+    if (num_zeros < 0) {
+        num_zeros = 0;
+    }
     int fill_base[fill_base_len]; //fill leading zeros
 
     for (int i = 0; i < fill_base_len; i++) {
-        if (i < fill_base_len - base_len) {
-            fill_base[i] = 0;
-        }
-        else {
-            fill_base[i] = base[i - (fill_base_len - base_len)];
-        }
+        fill_base[num_zeros + i] = base[i];
+    }
+
+    Serial.println("Fill base: ");
+    for (int i = 0; i < 5; i++) {
+        Serial.println(fill_base[i]);
     }
 
     int fill_sub_len = 7;
     int fill_sub[fill_sub_len]; //fill leading zeros  
+    num_zeros = fill_sub_len - sub_len;
     for (int i = 0; i < fill_sub_len; i++) {
-        if (i < fill_sub_len - sub_len) {
-            fill_sub[i] = 0;
-        }
-        else {
-            fill_sub[i] = sub[i - (fill_sub_len - sub_len)];
-        }
+        fill_sub[num_zeros + i] = sub[i];
     }
 
     int first_byte[8] = { readWriteBit, 1 };
@@ -183,21 +187,31 @@ uint32_t DW3000Class::readOrWriteFullAddress(int base[], int base_len, int sub[]
 }
 
 uint32_t DW3000Class::read(int base, int sub) {
+    Serial.println(base);
+    Serial.println(sub);
     int* _base = DW3000Class::getBase(base);
     int* _sub = DW3000Class::getSub(sub);
+    for (int i = 0; i < 5; i++) {
+        Serial.println(_base[i]);
+        Serial.println(_sub[i]);
+    }
+    
     int t[] = {0};
-    return readOrWriteFullAddress(_base, 5, _sub, 7, t, 0, 0);
+    uint32_t tmp;
+    tmp = readOrWriteFullAddress(_base, 5, _sub, 7, t, 0, 0);
     free(_base);
     free(_sub);
+    return tmp;
 }
 
 uint32_t DW3000Class::write(int base, int sub, int *data, int data_len) {
     int* _base = DW3000Class::getBase(base);
     int* _sub = DW3000Class::getSub(sub);
-    return readOrWriteFullAddress(_base, 5, _sub, 7, *data, data_len, 1);
+    readOrWriteFullAddress(_base, 5, _sub, 7, data, data_len, 1);
     free(data);
     free(_base);
     free(_sub);
+    return 0;
 }
 
 void DW3000Class::init() {
