@@ -18,6 +18,21 @@ With this little adjustment, we are ready to go.
 Just download the zip, extract it in your Arduino's "library" folder, implement it with the "#include <DW3000.h>" tag and create an instance of the library outside your setup() method with the following code: "DW3000 dw3000;" or "DW3000 dw3000(23)" to use it with an anchor id (in this case 23 as id). Now you can use the object dw3000 to call methods, e.g. dw3000.init(); and so on.
 Have fun!
 
+```
+#include <DW3000.h>
+
+DW3000 dw3000;
+
+void setup() {
+  dw3000.init();
+  //setup code here
+}
+
+void loop() {
+  //put your main code here
+}
+```
+
 ## Software
 For now, the library consists of the following functions:
 ### getAnchorID()
