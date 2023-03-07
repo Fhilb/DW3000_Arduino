@@ -8,7 +8,7 @@ This library should be used as a basic introduction in the topic, as it took me 
 
 ## Hardware
 For the whole project, I am using an Arduino Uno Rev 3 paired with the DWM3000EVB Board. These boards are quite nice, as they fit the Arduino perfectly and can be just plugged ontop. 
-But as always, it is not quite as nice as it looks like. For me, I had to add a pulldown resistor to the IRQ line, as it got pulled high randomly and you wouldn't want the Arduino getting interrupted if there is no event. I attached the interrupt on digital pin 2, so that I could add a resistor inbetween (As seen in the picture below).
+But as always, it is not quite as nice as it looks like. For me, I had to add a pulldown resistor (around 10k Ohm) to the IRQ line, as it got pulled high randomly and you wouldn't want the Arduino getting interrupted if there is no event. I attached the interrupt on digital pin 2, so that I could add a resistor inbetween (As seen in the picture below).
 
 ![alt text](https://i.ibb.co/Bcj6gdF/arduino-DW3000-Pulldown.png)
 
