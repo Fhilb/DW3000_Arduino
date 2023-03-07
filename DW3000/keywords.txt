@@ -1,0 +1,29 @@
+#######################################
+# Syntax Coloring Map For DW3000
+#######################################
+
+#######################################
+# Library (KEYWORD1)
+#######################################
+
+DW3000	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+init	KEYWORD2
+readInit	KEYWORD2
+getAnchorID	KEYWORD2
+read	KEYWORD2
+write	KEYWORD2
+setLED1	KEYWORD2
+setLED2	KEYWORD2
+
+# TODO ...
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+# TODO ...
