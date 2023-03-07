@@ -89,15 +89,10 @@ uint32_t DW3000Class::sendBytes(int b[], int lenB, int recLen) { //WORKING
 }
 
 uint32_t DW3000Class::readOrWriteFullAddress(int *base, int base_len, int *sub, int sub_len, int *data, int data_len, int readWriteBit) {
-    DW3000Class::readOrWriteFullAddress(base, base_len, sub, sub_len, data, data_len, readWriteBit, false);
+    return DW3000Class::readOrWriteFullAddress(base, base_len, sub, sub_len, data, data_len, readWriteBit, false);
 }
 
 uint32_t DW3000Class::readOrWriteFullAddress(int *base, int base_len, int *sub, int sub_len, int *data, int data_len, int readWriteBit, bool quiet) {
-    Serial.println("base: ");
-    for (int i = 0; i < 5; i++) {
-        Serial.println(base[i]);
-    }
-    if (quiet) Serial.end();
     int fill_base_len = 5;
     int num_zeros = fill_base_len - base_len;
     if (num_zeros < 0) {
@@ -109,14 +104,13 @@ uint32_t DW3000Class::readOrWriteFullAddress(int *base, int base_len, int *sub, 
         fill_base[num_zeros + i] = base[i];
     }
 
-    Serial.println("Fill base: ");
-    for (int i = 0; i < 5; i++) {
-        Serial.println(fill_base[i]);
-    }
 
     int fill_sub_len = 7;
     int fill_sub[fill_sub_len]; //fill leading zeros  
     num_zeros = fill_sub_len - sub_len;
+    if (num_zeros < 0) {
+        num_zeros = 0;
+    }
     for (int i = 0; i < fill_sub_len; i++) {
         fill_sub[num_zeros + i] = sub[i];
     }
@@ -168,6 +162,7 @@ uint32_t DW3000Class::readOrWriteFullAddress(int *base, int base_len, int *sub, 
         Serial.print(res, HEX);
         Serial.print(" (BIN): ");
         Serial.println(res, BIN);
+        return res;
     }
     else {
         Serial.print("Writing to ");
@@ -180,21 +175,14 @@ uint32_t DW3000Class::readOrWriteFullAddress(int *base, int base_len, int *sub, 
         }
         Serial.println("");
         res = (uint32_t)sendBytes(bytes, 2 + data_len, 0);
+        return res;
     }
-    if (quiet) Serial.begin(9600);
-    return res;
 
 }
 
 uint32_t DW3000Class::read(int base, int sub) {
-    Serial.println(base);
-    Serial.println(sub);
     int* _base = DW3000Class::getBase(base);
     int* _sub = DW3000Class::getSub(sub);
-    for (int i = 0; i < 5; i++) {
-        Serial.println(_base[i]);
-        Serial.println(_sub[i]);
-    }
     
     int t[] = {0};
     uint32_t tmp;
@@ -215,20 +203,19 @@ uint32_t DW3000Class::write(int base, int sub, int *data, int data_len) {
 }
 
 void DW3000Class::init() {
-    SPI.begin();
-    Serial.begin(9600);
+    Serial.println("\n+++ DecaWave DW3000 Test +++\n");
     attachInterrupt(digitalPinToInterrupt(2), interruptDetect, RISING);
+
     int shCmd[] = { 0 };
     writeShortCommand(shCmd, 1);
-    Serial.println("\n+++ DecaWave DW3000 Test +++\n");
 
-    int data[] = { 0xFF,0xFF,0xFF,0xFF,0xF2,0x1F }; //0xF0,0x2F //0x80,0x3E,0x0,0x0,0x0,0xF
+    int data[] = {0xFF,0xFF,0xFF,0xFF,0xF2,0x1F}; //0xF0,0x2F //0x80,0x3E,0x0,0x0,0x0,0xF
     DW3000Class::write(0x0, 0x3C, data, 6); //Set IRQ for successful received data frame
 
     int data2[] = { 0x03, 0x1C };
     DW3000Class::write(0x0, 0x24, data2, 2); //Frame length setup for Transmission  
 
-    int data11[] = { 0x00,0x9 };
+    int data11[] = {0x00,0x8};
     DW3000Class::write(0xA, 0x0, data11, 3); //AON_DIG_CFG register setup; sets up auto-rx calibration and on-wakeup GO2IDLE
 
     /*
@@ -280,75 +267,53 @@ void DW3000Class::init() {
 
 
 
-    //resetIRQStatusBits();
-
-
     /*
      * Things to do documented in https://gist.github.com/egnor/455d510e11c22deafdec14b09da5bf54
      */
     int data3[] = { 0xF5,0xE4 };
     DW3000Class::write(0x3, 0x18, data3, 2); //THR_64 value set to 0x32
-
+    //free(data3);
     int data5[] = { 0x2 };
     DW3000Class::write(0x4, 0xC, data5, 1); //COMP_DLY to 0x2
-
+    free(data5);
     int data6[] = { 0x14 };
     DW3000Class::write(0x7, 0x48, data6, 1); //LDO_RLOAD to 0x14
-
+    free(data6);
     int data7[] = { 0x0E };
+    Serial.println("ajskd1");
     DW3000Class::write(0x7, 0x1A, data7, 1); //RF_TX_CTRL_1 to 0x0E
-
-    int data8[] = { 0x34,0x11,0x07,0x1C };
-    DW3000Class::write(0x7, 0x1C, data8, 4); //RF_TX_CTRL_2 to 0x1C071134 (due to channel 5, else (9) to 0x1C010034)
-
+    free(data7);
+    Serial.println("ajskd2");
+    int data45[] = { 0x34,0x11,0x7,0x1C };
+    Serial.println("ajskd3");
+    DW3000Class::write(0x7, 0x1C, data45, 4); //RF_TX_CTRL_2 to 0x1C071134 (due to channel 5, else (9) to 0x1C010034)
+    Serial.println("ajskd4");
     int data9[] = { 0x3C,0x1F };
     DW3000Class::write(0x9, 0x0, data9, 2); //PLL_CFG to 0x1F3C (due to channel 5, else (9) to 0x0F3C)
 
     int data10[] = { 0x21 };
     DW3000Class::write(0x9, 0x8, data10, 1); //PLL_CFG_LD to 0x8 (Documenation says 0x81, doesn't fit the 6bit register tho)
 
-    int data12[] = { 0x0, 0x8, 0x1 };
-    DW3000Class::write(0xA, 0x0, data12, 3); //Auto antenna calibration on startup enable (ONW_PGFCAL)
-
     int data13[] = { 0x11 };
     int data14[] = { 0x0 }; //if finished with calibration go back in cal_mode
 
-    delay(50);
-    for (int i = 0; i < 5; i++) {
-        uint32_t h = DW3000Class::read(0x4, 0x20); //Read antenna calibration //RX_CAL_STS => Status bit, if high antenna cal was successful
-        if (h > 0) {
-            break;
-        }
-        int data29[] = { 0x5, 0x10 };
-        DW3000Class::write(0x7, 0x48, data29, 2); //Old values in register: 10000000000000011100
-        int data30[] = { 0x1 };
-        DW3000Class::write(0x4, 0xE, data30, 1);
-        if (i < 4) {
-            Serial.println("Failed auto calibration of antenna. Trying again in 50ms.");
-            DW3000Class::write(0x4, 0xC, data13, 1);
-            delay(50);
-        }
-        else {
-            Serial.println("[ERROR] Antenna auto calibration failed too often. Stopping to calibrate now.");
-        }
-        int data31[] = {0x1C};
-        write(0x7, 0x48, data31, 1);
+    delay(250);
+    uint32_t h = DW3000Class::read(0x4, 0x20); //Read antenna calibration //RX_CAL_STS => Status bit, if high antenna cal was successful
+    Serial.println(h);
+    if (h > 0) {
+        Serial.println("Antenna calibration completed.");
     }
-    DW3000Class::write(0x4, 0xC, data14, 1); //reset to normal operation
+    else {
+        Serial.println("[ERROR] Antenna auto calibration failed!");
+    }
+    
+    DW3000Class::resetIRQStatusBits();
 
-    //resetIRQStatusBits();
-    /*
-     * Things to do documented in https://gist.github.com/egnor/455d510e11c22deafdec14b09da5bf54
-     */
-
-
+    Serial.println("Initialization finished.");
 }
 
 void DW3000Class::readInit() {
-    int shCmd[] = { 0 };
-    writeShortCommand(shCmd, 1);
-    Serial.println("\n+++ DecaWave DW3000 Test +++\n");
-    Serial.println("IRQ:");
+    Serial.println("\nIRQ:");
     DW3000Class::read(0x0, 0x3C); //Set IRQ for successful received data frame
     Serial.println("Frame length:");
     DW3000Class::read(0x0, 0x24); //Frame length setup for Transmission  
