@@ -14,6 +14,10 @@ But as always, it is not quite as nice as it looks like. For me, I had to add a 
 
 With this little adjustment, we are ready to go.
 
+## Installation
+Just download the zip, extract it in your Arduino's "library" folder, implement it with the "#include <DW3000.h>" tag and create an instance of the library outside your setup() method with the following code: "DW3000 dw3000;" or "DW3000 dw3000(23)" to use it with an anchor id (in this case 23 as id). Now you can use the object dw3000 to call methods, e.g. dw3000.init(); and so on.
+Have fun!
+
 ## Software
 For now, the library consists of the following functions:
 ### getAnchorID()
@@ -33,10 +37,6 @@ It is recommended to call the init method in setup before doing anything with th
 
 ### readInit()
 readInit() uses the same registers that init() wrote to, but outputs its data. This is to manually check if anything isn't configured as it is supposed to and will *hopefully* be removed in future versions. 
-
-## Installation
-Just download the zip, extract it in your Arduino's "library" folder, implement it with the "#include <DW3000.h>" tag and create an instance of the library outside your setup() method with the following code: "DW3000 dw3000;" or "DW3000 dw3000(23)" to use it with an anchor id (in this case 23 as id). Now you can use the object dw3000 to call methods, e.g. dw3000.init(); and so on.
-Have fun!
 
 ## Examples
 Soon to come :)
