@@ -21,10 +21,10 @@ Have fun!
 ```
 #include <DW3000.h>
 
-DW3000 dw3000;
-
 void setup() {
-  dw3000.init();
+  DW3000.init();
+  int data[] = {0x03, 0xFA};
+  DW3000.write(0x0, 0x4, data, 2);
   //setup code here
 }
 
@@ -35,6 +35,11 @@ void loop() {
 
 ## Software
 For now, the library consists of the following functions:
+
+### init()
+This method will write all the necessary data to the DW3000 to work properly, e.g. data rate, channel, preamble length, but will also add all the "easy to miss" things pointed out by [github user egnor](https://gist.github.com/egnor/455d510e11c22deafdec14b09da5bf54).
+#### !! The init method has to be used before interacting with the DW3000 in any other way, because the Serial monitor and SPI are initialized there too !!
+
 ### getAnchorID()
 You can initialize the DW3000 library with an anchor id, which can be got back at a later time by this method. If no anchor id was given, it returns -1.
 
@@ -42,13 +47,19 @@ You can initialize the DW3000 library with an anchor id, which can be got back a
 Returns an Integer containing the result of the first 4 octets given by the DW3000. 
 Be aware, that the result cuts away leading zeros, meaning that if you are expecting the first 3 octets to be 0x0 and the last one to be 0xA, it will just return 0xA - 1010 in binary - cutting away the other 28 zeros in front.
 the "base" and "sub" parameters accept any Integer value. It is recommended to just write in Hex format to avoid confusion, as the DW3000 Family Manual uses the hex format as well. 
-### write(int base, int sub, data, data_len
+
+### write(int base, int sub, data, data_len)
 The write command returns 0, as it consists of the same method as the read() method with a few tweaks. This can be ignored.
 In order to use the write command, you first need to create an int array, containing the data you want to transmit. 
 Index 0 will be sent first, keep that in mind as the DW3000 manual often shows the register starting on the righthand side, which then would be written to first with index 0 of the array.
-### init()
-This method will write all the necessary data to the DW3000 to work properly, e.g. data rate, channel, preamble length, but will also add all the "easy to miss" things pointed out by [github user egnor](https://gist.github.com/egnor/455d510e11c22deafdec14b09da5bf54).
-It is recommended to call the init method in setup before doing anything with the DW3000.
+"data_len" defines the number of values in the data array. 
+#### !! Keep in mind that you can't use your data array again after using it in the write() method as the allocated space of the array will be freed automatically after finishing the method !!
+
+### setLED1(bool status)
+Sets LED1 (TX LED) to high or low. You can use it with the "HIGH" or "LOW" parameters.
+
+### setLED2(bool status)
+Same as LED1, just with LED2 (RX LED).
 
 ### readInit()
 readInit() uses the same registers that init() wrote to, but outputs its data. This is to manually check if anything isn't configured as it is supposed to and will *hopefully* be removed in future versions. 
