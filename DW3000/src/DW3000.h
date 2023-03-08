@@ -25,7 +25,7 @@ class DW3000Class {
 		static void readInit();
 		static void setLED1(uint8_t status);
 		static void setLED2(uint8_t status);
-
+		static void interruptDetect();
 	private:
 		static int* getBase(int hex_num);
 		static int* getSub(int hex_num);
@@ -37,7 +37,6 @@ class DW3000Class {
 		static bool is_anchor;
 		static int anchor_id;
 		static void resetIRQStatusBits();
-		static void interruptDetect();
 		static int getIRQBit();
 		static int readRXBuffer();
 		static void initLEDs();
