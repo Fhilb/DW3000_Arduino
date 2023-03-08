@@ -31,7 +31,7 @@ class DW3000Class {
 		static int* getSub(int hex_num);
 		static void writeShortCommand(int cmd[], int cmd_len);
 		static uint32_t readOrWriteFullAddress(int *base, int base_len, int *sub, int sub_len, int *data, int data_len, int readWriteBit);
-		static uint32_t readOrWriteFullAddress(int *base, int base_len, int *sub, int sub_len, int *data, int data_len, int readWriteBit, bool quiet);
+		//static uint32_t readOrWriteFullAddress(int *base, int base_len, int *sub, int sub_len, int *data, int data_len, int readWriteBit, bool quiet);
 		static uint32_t sendBytes(int b[], int lenB, int recLen);
 		static int* hexToBin(int hex_num, int bit_size);
 		static bool is_anchor;
@@ -40,6 +40,7 @@ class DW3000Class {
 		static void interruptDetect();
 		static int getIRQBit();
 		static int readRXBuffer();
+		static void initLEDs();
 };
 extern DW3000Class DW3000;
 #endif

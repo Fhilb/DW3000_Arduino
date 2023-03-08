@@ -23,6 +23,10 @@ DW3000Class DW3000;
 #define TX_LED 3
 #define RX_LED 4
 
+bool leds_init = false;
+
+//int test[] = { 128,9821,18293,19,1289,1289,238,1298,12983,1829,21438,1283,840,1289,472,8945,948,4938,389245,23489,58498,23,32849 };
+
 /*DW3000Class::DW3000(int _anchor_id) {
     attachInterrupt(digitalPinToInterrupt(2), interruptDetect, RISING);
 	anchor_id = _anchor_id;
@@ -88,11 +92,11 @@ uint32_t DW3000Class::sendBytes(int b[], int lenB, int recLen) { //WORKING
     return val;
 }
 
-uint32_t DW3000Class::readOrWriteFullAddress(int *base, int base_len, int *sub, int sub_len, int *data, int data_len, int readWriteBit) {
+/*uint32_t DW3000Class::readOrWriteFullAddress(int* base, int base_len, int* sub, int sub_len, int* data, int data_len, int readWriteBit) {
     return DW3000Class::readOrWriteFullAddress(base, base_len, sub, sub_len, data, data_len, readWriteBit, false);
-}
+}*/
 
-uint32_t DW3000Class::readOrWriteFullAddress(int *base, int base_len, int *sub, int sub_len, int *data, int data_len, int readWriteBit, bool quiet) {
+uint32_t DW3000Class::readOrWriteFullAddress(int *base, int base_len, int *sub, int sub_len, int *data, int data_len, int readWriteBit) {
     int fill_base_len = 5;
     int num_zeros = fill_base_len - base_len;
     if (num_zeros < 0) {
@@ -187,18 +191,15 @@ uint32_t DW3000Class::read(int base, int sub) {
     int t[] = {0};
     uint32_t tmp;
     tmp = readOrWriteFullAddress(_base, 5, _sub, 7, t, 0, 0);
-    free(_base);
-    free(_sub);
     return tmp;
 }
 
 uint32_t DW3000Class::write(int base, int sub, int *data, int data_len) {
+    Serial.println("In write");
     int* _base = DW3000Class::getBase(base);
     int* _sub = DW3000Class::getSub(sub);
     readOrWriteFullAddress(_base, 5, _sub, 7, data, data_len, 1);
-    free(data);
-    free(_base);
-    free(_sub);
+
     return 0;
 }
 
@@ -272,17 +273,15 @@ void DW3000Class::init() {
      */
     int data3[] = { 0xF5,0xE4 };
     DW3000Class::write(0x3, 0x18, data3, 2); //THR_64 value set to 0x32
-    //free(data3);
     int data5[] = { 0x2 };
     DW3000Class::write(0x4, 0xC, data5, 1); //COMP_DLY to 0x2
-    free(data5);
     int data6[] = { 0x14 };
     DW3000Class::write(0x7, 0x48, data6, 1); //LDO_RLOAD to 0x14
-    free(data6);
-    int data7[] = { 0x0E };
+    Serial.println("ajskd11");
+    Serial.println("ajskd12");
+    int data7[] = { 0xE };
     Serial.println("ajskd1");
     DW3000Class::write(0x7, 0x1A, data7, 1); //RF_TX_CTRL_1 to 0x0E
-    free(data7);
     Serial.println("ajskd2");
     int data45[] = { 0x34,0x11,0x7,0x1C };
     Serial.println("ajskd3");
@@ -306,10 +305,9 @@ void DW3000Class::init() {
     else {
         Serial.println("[ERROR] Antenna auto calibration failed!");
     }
-    
-    DW3000Class::resetIRQStatusBits();
-
     Serial.println("Initialization finished.");
+
+    DW3000Class::resetIRQStatusBits();
 }
 
 void DW3000Class::readInit() {
@@ -507,19 +505,30 @@ int DW3000Class::readRXBuffer() {
 }
 
 void DW3000Class::setLED1(uint8_t status) {
+    if (!leds_init) initLEDs();
     if (status > 0) {
+        Serial.println("Writing to led high");
         digitalWrite(TX_LED, HIGH);
     }
     else {
+        Serial.println("Writing to led low");
         digitalWrite(TX_LED, LOW);
     }
 }
 
 void DW3000Class::setLED2(uint8_t status) {
     if (status > 0) {
+        Serial.println("Writing to led high");
         digitalWrite(RX_LED, HIGH);
     }
     else {
+        Serial.println("Writing to led low");
         digitalWrite(RX_LED, LOW);
     }
+}
+
+void DW3000Class::initLEDs() {
+    pinMode(RX_LED, OUTPUT);
+    pinMode(TX_LED, OUTPUT);
+    leds_init = true;
 }
