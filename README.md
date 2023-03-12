@@ -7,7 +7,7 @@ As I am currently trying out the fairly new Qorvo DW3000 modules, I wanted to sh
 This library should be used as a basic introduction in the topic, as it took me a few weeks to get through all the trouble of documentation and trial and error. It should serve as a solid foundation for whatever purpose you need it. :)
 
 ## Hardware
-For the whole project, I am using an Arduino Uno Rev 3 paired with the DWM3000EVB Board. These boards are quite nice, as they fit the Arduino perfectly and can be just plugged ontop. 
+For the whole project, I am using an Arduino Mega paired with the DWM3000EVB Board. These boards are quite nice, as they fit the Arduino perfectly and can be just plugged ontop. (!Be aware that Arduino Unos might not work due to flash capacity limitations!)
 But as always, it is not quite as nice as it looks like. For me, I had to add a pulldown resistor (around 10k Ohm) to the IRQ line, as it got pulled high randomly and you wouldn't want the Arduino getting interrupted if there is no event. I attached the interrupt on digital pin 2, so that I could add a resistor inbetween (As seen in the picture below).
 
 ![alt text](https://i.ibb.co/Bcj6gdF/arduino-DW3000-Pulldown.png)
