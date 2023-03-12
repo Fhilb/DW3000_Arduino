@@ -22,7 +22,15 @@ Have fun!
 #include <DW3000.h>
 
 void setup() {
-  DW3000.init();
+/* Standard configuration that has to be done in every setup: */
+  pinMode(10, OUTPUT); //for now it has to be initalized manually. TODO
+  Serial.begin(9600); 
+  SPI.begin();
+  
+  
+  /*Your code: */
+  
+  DW3000.init(); 
   int data[] = {0x03, 0xFA};
   DW3000.write(0x0, 0x4, data, 2);
   //setup code here
