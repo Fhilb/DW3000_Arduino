@@ -26,6 +26,12 @@ DW3000Class DW3000;
 
 bool leds_init = false;
 
+byte DW3000Class::rx_cal_conf[LEN_RX_CAL_CONF];
+byte DW3000Class::tx_fctrl_conf[LEN_TX_FCTRL_CONF];
+byte DW3000Class::aon_dig_cfg_conf[LEN_AON_DIG_CFG_CONF];
+
+
+
 //int test[] = { 128,9821,18293,19,1289,1289,238,1298,12983,1829,21438,1283,840,1289,472,8945,948,4938,389245,23489,58498,23,32849 };
 
 /*DW3000Class::DW3000(int _anchor_id) {
@@ -40,6 +46,94 @@ DW3000Class::DW3000() {
     SPI.begin();
     Serial.begin(9600);
 }*/
+
+void DW3000Class::begin() {
+    delay(5);
+    pinMode(CHIP_SELECT_PIN, OUTPUT);
+    SPI.begin();
+
+    attachInterrupt(digitalPinToInterrupt(2), DW3000Class::interruptDetect, RISING);
+}
+
+void DW3000Class::getMemInfo()
+{
+    extern unsigned int __data_start;
+    extern unsigned int __data_end;
+    extern unsigned int __bss_start;
+    extern unsigned int __bss_end;
+    extern unsigned int __heap_start;
+    extern void* __brkval;
+    //  extern void *__malloc_heap_start; --> apparently already declared as char*
+    //  extern void *__malloc_margin; --> apparently already declared as a size_t
+    //  RAMEND and SP seem to be available without declaration here
+
+    Serial.println("--------------------------------------------");
+
+    // ---------------- Print memory profile -----------------
+    int16_t ramSize = 0;   // total amount of ram available for partitioning
+    int16_t dataSize = 0;  // partition size for .data section
+    int16_t bssSize = 0;   // partition size for .bss section
+    int16_t heapSize = 0;  // partition size for current snapshot of the heap section
+    int16_t stackSize = 0; // partition size for current snapshot of the stack section
+    int16_t freeMem1 = 0;  // available ram calculation #1
+    int16_t freeMem2 = 0;  // available ram calculation #2
+    // summaries:
+    ramSize = (int)RAMEND - (int)&__data_start;
+    dataSize = (int)&__data_end - (int)&__data_start;
+    bssSize = (int)&__bss_end - (int)&__bss_start;
+    heapSize = (int)__brkval - (int)&__heap_start;
+    stackSize = (int)RAMEND - (int)SP;
+    freeMem1 = (int)SP - (int)__brkval;
+    freeMem2 = ramSize - stackSize - heapSize - bssSize - dataSize;
+    Serial.println("----- GET MEMORY INFORMATIONS -----");
+    Serial.println("");
+    Serial.println("--- max. available memory by hardware ---");
+    Serial.print("ram total  = "); Serial.print(ramSize, DEC); Serial.println(" bytes");
+    Serial.println("--- DATA ---");
+    Serial.print("data_start = 0x"); Serial.print((int)&__data_start, HEX); Serial.print(" / "); Serial.println((int)&__data_start, DEC);
+    Serial.print("data_end   = 0x"); Serial.print((int)&__data_end, HEX); Serial.print(" / "); Serial.println((int)&__data_end, DEC);
+    Serial.print("data size  = "); Serial.println(dataSize, DEC);
+    Serial.println("--- BSS ---");
+    Serial.print("bss_start  = 0x"); Serial.print((int)&__bss_start, HEX); Serial.print(" / "); Serial.println((int)&__bss_start, DEC);
+    Serial.print("bss_end    = 0x"); Serial.print((int)&__bss_end, HEX); Serial.print(" / "); Serial.println((int)&__bss_end, DEC);
+    Serial.print("bss size   = "); Serial.println(bssSize, DEC);
+    Serial.println("--- HEAP ---");
+    Serial.print("heap_start =0x"); Serial.print((int)&__heap_start, HEX); Serial.print(" / "); Serial.println((int)&__heap_start, DEC);
+    Serial.println("heap_margin = ? ? ?");
+    //  Serial.print("\n__malloc_margin=[0x"); Serial.print( (int) &__malloc_margin, HEX ); Serial.print("] which is ["); Serial.print( (int) &__malloc_margin, DEC); Serial.print("] bytes decimal");
+    Serial.print("heap end    = 0x"); Serial.print((int)__brkval, HEX); Serial.print(" / "); Serial.println((int)__brkval, DEC);
+    Serial.print("heap size   = "); Serial.println(heapSize, DEC);
+    Serial.println("--- STACK ---");
+    Serial.print("stack start = 0x"); Serial.print((int)SP, HEX); Serial.print(" / "); Serial.println((int)SP, DEC);
+    Serial.print("stack end   = 0x"); Serial.print((int)RAMEND, HEX); Serial.print(" / "); Serial.println((int)RAMEND, DEC);
+    Serial.print("stack size= "); Serial.println(stackSize, DEC);
+    Serial.println("--- FREE MEMORY ---");
+    Serial.print("free size1 = "); Serial.println(freeMem1, DEC);
+    Serial.print("free size2 = "); Serial.println(freeMem2, DEC);
+    // --- free_memory ---
+    Serial.println("");
+    Serial.println("--- calculated with free_memory:");
+    int free_memory;
+    if ((int)__brkval == 0)
+        free_memory = ((int)&free_memory) - ((int)&__bss_end);
+    else
+        free_memory = ((int)&free_memory) - ((int)__brkval);
+    Serial.print("free size3 = "); Serial.println(free_memory);
+
+    // --- check-memory ---
+    Serial.println("");
+    Serial.println("--- calculated with check_memory:");
+    uint8_t* heapptr, * stackptr;
+    uint16_t diff = 0;
+    stackptr = (uint8_t*)malloc(4);          // use stackptr temporarily
+    heapptr = stackptr;                     // save value of heap pointer
+    free(stackptr);      // free up the memory again (sets stackptr to 0)
+    stackptr = (uint8_t*)(SP);           // save value of stack pointer
+    Serial.print("heap strat = 0x"); Serial.print((int)heapptr, HEX); Serial.print(" / "); Serial.println((int)heapptr, DEC);
+    Serial.print("stackptr   = 0x"); Serial.print((int)stackptr, HEX); Serial.print(" / "); Serial.println((int)stackptr, DEC);
+    diff = stackptr - heapptr;
+    Serial.print("free size4 = "); Serial.println((int)diff, DEC);
+}
 
 int* DW3000Class::getBase(int hex_num)
 {
@@ -210,21 +304,21 @@ void DW3000Class::init() {
     Serial.println("\n+++ DecaWave DW3000 Test +++\n");
 
     int shCmd[] = { 0 };
-    writeShortCommand(shCmd, 1);
+    writeShortCommand(shCmd, 1); 
 
-    int data[] = {0xFF,0xFF,0xFF,0xFF,0xF2,0x1F}; //0xF0,0x2F //0x80,0x3E,0x0,0x0,0x0,0xF
+    int data[] = {0xFF,0xFF,0xFF,0xFF,0xF2,0x1F}; //0xF0,0x2F //0x80,0x3E,0x0,0x0,0x0,0xF  //0x0
     DW3000Class::write(0x0, 0x3C, data, 6); //Set IRQ for successful received data frame
   
     int data2[] = { 0x03, 0x3C };
     DW3000Class::write(0x0, 0x24, data2, 2); //Frame length setup for Transmission  
 
     int data11[] = {0x00,0x9, 0x0};
-    DW3000Class::write(0xA, 0x0, data11, 3); //AON_DIG_CFG register setup; sets up auto-rx calibration and on-wakeup GO2IDLE
+    DW3000Class::write(0xA, 0x0, data11, 3); //AON_DIG_CFG register setup; sets up auto-rx calibration and on-wakeup GO2IDLE  //0xA
 
     /*
      * Set RX and TX config
      */
-    int data15[] = { 0x40,0x02,0x00,0x10 }; //DGC_CFG0
+    int data15[] = { 0x40,0x02,0x00,0x10 }; //DGC_CFG0  //0x3
     DW3000Class::write(0x3, 0x1C, data15, 4);
 
     int data16[] = { 0x89,0xa4,0x6d,0x1b }; //DGC_CFG1
@@ -251,53 +345,52 @@ void DW3000Class::init() {
     int data23[] = { 0xF5,0xCF,0x01,0x00 }; //DGC_LUT_6
     DW3000Class::write(0x3, 0x50, data23, 4);
 
+    int data3[] = { 0xF5,0xE4 };
+    DW3000Class::write(0x3, 0x18, data3, 2); //THR_64 value set to 0x32
+
     //SET PAC TO 32 (0x00) reg:06:00 bits:1-0, bit 4 to 0 (00001100) (0xC)
     int data25[] = { 0xE };
-    DW3000Class::write(0x6, 0x0, data25, 1);
+    DW3000Class::write(0x6, 0x0, data25, 1);  //0x6
+
+    //set SFD Detection timeout count to 1057 (0x21, 0x4); 1018 old: (0xFA, 0x3)
+    int data28[] = { 0x21, 0x4 };
+    DW3000Class::write(0x6, 0x2, data28, 2);
 
     //SET PREAMBLE CODE (RX_PCODE, TX_PCODE) TO 10 (reg:01:14) //Standard SFD Type is 11 (data: 0x56, 0x5), trying 00 (0x50, 0x5)
     int data26[] = { 0x56, 0x5 };
-    DW3000Class::write(0x1, 0x14, data26, 2);
+    DW3000Class::write(0x1, 0x14, data26, 2);  //0x1
 
     // write preamble length, frame length, data rate and prf in TX_FCTRL  //PSR = 1024, TXFLEN = 3 Byte (1 data, 2 CRC) TXBR = 6.81Mb/s, TR Bit enabled, FINE_PLEN = 0x0
     // reg:00:24 bits 0 - 25
     /*int data27[] = {0x03, 0x2C};
     DW3000Class::write(0x0, 0x24, data27, 2);*/
 
-    //set SFD Detection timeout count to 1057 (0x21, 0x4); 1018 old: (0xFA, 0x3)
-    int data28[] = { 0x21, 0x4 };
-    DW3000Class::write(0x6, 0x2, data28, 2);
+
 
 
 
     /*
      * Things to do as documented in https://gist.github.com/egnor/455d510e11c22deafdec14b09da5bf54
      */
-    int data3[] = { 0xF5,0xE4 };
-    DW3000Class::write(0x3, 0x18, data3, 2); //THR_64 value set to 0x32
-    int data5[] = {0xFF };
-    DW3000Class::write(0x4, 0xC, data5,1); //COMP_DLY to 0x2
+
 
     int data6[] = { 0x14 };
-    DW3000Class::write(0x7, 0x48, data6, 1); //LDO_RLOAD to 0x14
+    DW3000Class::write(0x7, 0x48, data6, 1); //LDO_RLOAD to 0x14 //0x7
     int data7[] = { 0xE };
     DW3000Class::write(0x7, 0x1A, data7, 1); //RF_TX_CTRL_1 to 0x0E
     int data45[] = { 0x34,0x11,0x07,0x1C };
     DW3000Class::write(0x7, 0x1C, data45, 4); //RF_TX_CTRL_2 to 0x1C071134 (due to channel 5, else (9) to 0x1C010034)
+
     int data9[] = { 0x3C,0x1F };
-    DW3000Class::write(0x9, 0x0, data9, 2); //PLL_CFG to 0x1F3C (due to channel 5, else (9) to 0x0F3C)
+    DW3000Class::write(0x9, 0x0, data9, 2); //PLL_CFG to 0x1F3C (due to channel 5, else (9) to 0x0F3C)  //0x9
 
     int data10[] = { 0x81 };
     DW3000Class::write(0x9, 0x8, data10, 1); //PLL_CAL config to 0x81
 
     int data13[] = { 0x11 };
     int data14[] = { 0x0 }; //if finished with calibration go back in cal_mode //also used to reset LDO_CTRL to 0x0
-    int data29[] = {0x10, 0x5};
-
-    DW3000Class::write(0x7, 0x48, data29, 2);
-    int data30[] = {0x0, 0x0, 0x1 };
-    DW3000Class::write(0x4, 0xC, data30, 3); //COMP_DLY to 0x0
-
+ 
+    
     delay(200);
     for (int i = 0; i < 5; i++) {
         delay(50);
@@ -318,9 +411,6 @@ void DW3000Class::init() {
         }
     }
     DW3000Class::write(0x4, 0x0C, data14, 1); //Reset antenna calibration to standard mode
-    DW3000Class::write(0x7, 0x48, data14, 1); //reset LDO_CTRL
-
-    DW3000Class::write(0x4, 0xC, data5, 1); //COMP_DLY to 0x2
 
     DW3000Class::resetIRQStatusBits();
 
@@ -569,3 +659,109 @@ void DW3000Class::standardRX() {
     int cmd[] = { 0x2 };
     DW3000Class::writeShortCommand(cmd, 1);
 }
+
+/*
+* Set bit on a specific index in a byte array
+*/
+void DW3000Class::setBit(byte data[], uint16_t index, bool b) {
+    uint16_t n_byte = index / 8;
+    uint8_t n_shift = index % 8;
+
+    if (n_byte >= index) {
+        Serial.println("[ERROR] Out of bounds error occured in setBit() method.");
+        return;
+    }
+    byte* tmpByte = &data[n_byte];
+    if (b) {
+        bitSet(*tmpByte, n_shift);
+    }
+    else {
+        bitClear(*tmpByte, n_shift);
+    }
+}
+
+void DW3000Class::setBitHigh(byte data[], uint16_t index) {
+    setBit(*data, index, 1);
+}
+void DW3000Class::setBitLow(byte data[], uint16_t index) {
+    setBit(*data, index, 0);
+}
+
+void DW3000Class::initTX_FCTRL() {
+    setBitHigh(tx_fctrl_conf, 10);
+    setBitHigh(tx_fctrl_conf, 11);
+    setBitHigh(tx_fctrl_conf, 12);
+}
+
+void DW3000Class::initAONWakeUp() {
+    setBitHigh(aon_dig_cfg_conf, 8);
+    setBitHigh(aon_dig_cfg_conf, 11);
+    0x00, 0x9, 0x0
+}
+
+void DW3000Class::setTXLEN(bool n) {
+    //TODO
+}
+
+void DW3000Class::setPreambleLength(uint_16 l) {
+    switch (l) {
+    case 1:
+        setBit(tx_fctrl_conf, 12, 0);
+        setBit(tx_fctrl_conf, 13, 0);
+        setBit(tx_fctrl_conf, 14, 1);
+        setBit(tx_fctrl_conf, 15, 0);
+        break;
+    case 2:
+        setBit(tx_fctrl_conf, 12, 1);
+        setBit(tx_fctrl_conf, 13, 0);
+        setBit(tx_fctrl_conf, 14, 0);
+        setBit(tx_fctrl_conf, 15, 0);
+        break;
+    case 3:
+        setBit(tx_fctrl_conf, 12, 1);
+        setBit(tx_fctrl_conf, 13, 0);
+        setBit(tx_fctrl_conf, 14, 1);
+        setBit(tx_fctrl_conf, 15, 0);
+        break;
+    case 4:
+        setBit(tx_fctrl_conf, 12, 1);
+        setBit(tx_fctrl_conf, 13, 0);
+        setBit(tx_fctrl_conf, 14, 0);
+        setBit(tx_fctrl_conf, 15, 1);
+        break;
+    case 5:
+        setBit(tx_fctrl_conf, 12, 1);
+        setBit(tx_fctrl_conf, 13, 0);
+        setBit(tx_fctrl_conf, 14, 1);
+        setBit(tx_fctrl_conf, 15, 1);
+        break;
+    case 6:
+        setBit(tx_fctrl_conf, 12, 0);
+        setBit(tx_fctrl_conf, 13, 1);
+        setBit(tx_fctrl_conf, 14, 0);
+        setBit(tx_fctrl_conf, 15, 0);
+        break;
+    case 7:
+        setBit(tx_fctrl_conf, 12, 0);
+        setBit(tx_fctrl_conf, 13, 1);
+        setBit(tx_fctrl_conf, 14, 0);
+        setBit(tx_fctrl_conf, 15, 1);
+        break;
+    case 8:
+        setBit(tx_fctrl_conf, 12, 1);
+        setBit(tx_fctrl_conf, 13, 1);
+        setBit(tx_fctrl_conf, 14, 0);
+        setBit(tx_fctrl_conf, 15, 0);
+        break;
+    case 9:
+        setBit(tx_fctrl_conf, 12, 0);
+        setBit(tx_fctrl_conf, 13, 1);
+        setBit(tx_fctrl_conf, 14, 1);
+        setBit(tx_fctrl_conf, 15, 0);
+        break;
+    default:
+        Serial.println("[ERROR] Wrong preamble length given in setup!");
+        break;
+    }
+}
+

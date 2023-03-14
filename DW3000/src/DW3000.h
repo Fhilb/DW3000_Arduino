@@ -16,8 +16,22 @@
 #define Morse_h
 
 #include "Arduino.h"
+#include "DW3000Constants.h"
+
+
 class DW3000Class {
 	public:
+		/* CONFIG SETTINGS */
+		static void initTX_FCTRL();
+		static void setTXLEN(bool n);
+		static void setPreambleLength(uint_16 l);
+
+		/* INITS */
+		static void initTX_FCTRL();
+		static void initAONWakeUp();
+
+
+		static void setBitHigh(byte data[], uint16_t index);
 		static int getAnchorID();
 		static uint32_t read(int base, int sub);
 		static uint32_t write(int base, int sub, int *data, int data_len);
@@ -28,6 +42,9 @@ class DW3000Class {
 		static void interruptDetect();
 		static void standardTX();
 		static void standardRX();
+		static void begin();
+		static void getMemInfo();
+		static void setBit(byte data[], uint16_t index, bool b);
 	private:
 		static int* getBase(int hex_num);
 		static int* getSub(int hex_num);
@@ -38,6 +55,7 @@ class DW3000Class {
 		static int* hexToBin(int hex_num, int bit_size);
 		static bool is_anchor;
 		static int anchor_id;
+		static byte rx_cal_conf[];
 		static void resetIRQStatusBits();
 		static int getIRQBit();
 		static int readRXBuffer();

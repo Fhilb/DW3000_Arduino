@@ -1,0 +1,21 @@
+
+#ifndef _DW3000CONSTANTS_H_INCLUDED
+#define _DW3000CONSTANTS_H_INCLUDED
+
+#define LEN_RX_CAL_CONF 4
+#define LEN_TX_FCTRL_CONF 6
+#define LEN_AON_DIG_CFG_CONF 3
+
+
+#define PREAMBLE_32 1
+#define PREAMBLE_64 2
+#define PREAMBLE_128 3
+#define PREAMBLE_256 4
+#define PREAMBLE_512 5
+#define PREAMBLE_1024 6
+#define PREAMBLE_2048 7
+#define PREAMBLE_4096 8
+#define PREAMBLE_1536 9
+
+
+#endif
