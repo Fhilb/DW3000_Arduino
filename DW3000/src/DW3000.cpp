@@ -24,7 +24,9 @@ DW3000Class DW3000;
 #define RX_LED 4 //GREEN
 
 
-bool leds_init = false;
+bool DW3000Class::leds_init = false;
+bool DW3000Class::cmd_error = false;
+bool DW3000Class::rx_rec = false;
 
 byte DW3000Class::rx_cal_conf[LEN_RX_CAL_CONF];
 byte DW3000Class::tx_fctrl_conf[LEN_TX_FCTRL_CONF];
@@ -161,7 +163,6 @@ int DW3000Class::getAnchorID() {
 	return anchor_id;
 }
 
-
 uint32_t DW3000Class::sendBytes(int b[], int lenB, int recLen) { //WORKING
     digitalWrite(CHIP_SELECT_PIN, LOW);
     for (int i = 0; i < lenB; i++) {
@@ -278,7 +279,6 @@ uint32_t DW3000Class::readOrWriteFullAddress(int *base, int base_len, int *sub, 
         res = (uint32_t)sendBytes(bytes, 2 + data_len, 0);
         return res;
     }
-
 }
 
 uint32_t DW3000Class::read(int base, int sub) {
@@ -289,6 +289,9 @@ uint32_t DW3000Class::read(int base, int sub) {
     uint32_t tmp;
     tmp = readOrWriteFullAddress(_base, 5, _sub, 7, t, 0, 0);
     Serial.println("");
+    free(_base);
+    free(_sub);
+
     return tmp;
 }
 
@@ -296,6 +299,8 @@ uint32_t DW3000Class::write(int base, int sub, int *data, int data_len) {
     int* _base = DW3000Class::getBase(base);
     int* _sub = DW3000Class::getSub(sub);
     readOrWriteFullAddress(_base, 5, _sub, 7, data, data_len, 1);
+    free(_base);
+    free(_sub);
 
     return 0;
 }
@@ -306,7 +311,7 @@ void DW3000Class::init() {
     int shCmd[] = { 0 };
     writeShortCommand(shCmd, 1); 
 
-    int data[] = {0xFF,0xFF,0xFF,0xFF,0xF2,0x1F}; //0xF0,0x2F //0x80,0x3E,0x0,0x0,0x0,0xF  //0x0
+    int data[] = {0x80,0xEB,0x7,0x0,0x0,0x1F}; //0xF0,0x2F //0x80,0x3E,0x0,0x0,0x0,0x1F  //0x0
     DW3000Class::write(0x0, 0x3C, data, 6); //Set IRQ for successful received data frame
   
     int data2[] = { 0x03, 0x3C };
@@ -505,9 +510,7 @@ void DW3000Class::interruptDetect() { //On calling interrupt
         break;
     case 2:
         Serial.println("Interruption cause: RX Data ready");
-        digitalWrite(TX_LED, HIGH);
-        delay(100);
-        digitalWrite(TX_LED, LOW);
+        DW3000Class::rx_rec = true;
         readRXBuffer();
         break;
     case 3:
@@ -521,6 +524,8 @@ void DW3000Class::interruptDetect() { //On calling interrupt
         break;
     case 4:
         Serial.println("Interruption cause: Cmd Error");
+        cmd_error = true;
+        SPI.endTransaction();
         break;
     default:
         Serial.print("irq_reason got wrong value. Value: ");
@@ -643,9 +648,14 @@ void DW3000Class::initLEDs() {
 }
 
 void DW3000Class::standardTX() {
+    if (cmd_error) {
+        cmd_error = false;
+        int cmd[] = { 0 };
+        writeShortCommand(cmd, 1);
+    }
     int data[] = { 0x36 };
     DW3000Class::write(0x14, 0x0, data, 1);
-    int cmd[] = { 0x1 };
+    int cmd[] = { 1 };
     DW3000Class::writeShortCommand(cmd, 1);
 
     DW3000Class::setLED1(HIGH);
@@ -656,8 +666,8 @@ void DW3000Class::standardTX() {
 }
 
 void DW3000Class::standardRX() {
-    int cmd[] = { 0x2 };
-    DW3000Class::writeShortCommand(cmd, 1);
+    int cmd[] = { 1,0 };
+    DW3000Class::writeShortCommand(cmd, 2);
 }
 
 /*
@@ -696,14 +706,14 @@ void DW3000Class::initTX_FCTRL() {
 void DW3000Class::initAONWakeUp() {
     setBitHigh(aon_dig_cfg_conf, 8);
     setBitHigh(aon_dig_cfg_conf, 11);
-    0x00, 0x9, 0x0
+    //0x00, 0x9, 0x0
 }
 
 void DW3000Class::setTXLEN(bool n) {
     //TODO
 }
 
-void DW3000Class::setPreambleLength(uint_16 l) {
+void DW3000Class::setPreambleLength(uint16_t l) {
     switch (l) {
     case 1:
         setBit(tx_fctrl_conf, 12, 0);
@@ -764,4 +774,3 @@ void DW3000Class::setPreambleLength(uint_16 l) {
         break;
     }
 }
-

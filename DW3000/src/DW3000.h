@@ -21,20 +21,18 @@
 
 class DW3000Class {
 	public:
+		static bool rx_rec;
 		/* CONFIG SETTINGS */
-		static void initTX_FCTRL();
 		static void setTXLEN(bool n);
-		static void setPreambleLength(uint_16 l);
+		static void setPreambleLength(uint16_t l);
 
 		/* INITS */
 		static void initTX_FCTRL();
 		static void initAONWakeUp();
 
-
-		static void setBitHigh(byte data[], uint16_t index);
 		static int getAnchorID();
 		static uint32_t read(int base, int sub);
-		static uint32_t write(int base, int sub, int *data, int data_len);
+		static uint32_t write(int base, int sub, int* data, int data_len);
 		static void init();
 		static void readInit();
 		static void setLED1(uint8_t status);
@@ -44,22 +42,39 @@ class DW3000Class {
 		static void standardRX();
 		static void begin();
 		static void getMemInfo();
-		static void setBit(byte data[], uint16_t index, bool b);
+
 	private:
+		static void setBit(byte data[], uint16_t index, bool b);
+
+		static void setBitLow(byte data[], uint16_t index);
+		static void setBitHigh(byte data[], uint16_t index);
+
 		static int* getBase(int hex_num);
 		static int* getSub(int hex_num);
+
 		static void writeShortCommand(int cmd[], int cmd_len);
-		static uint32_t readOrWriteFullAddress(int *base, int base_len, int *sub, int sub_len, int *data, int data_len, int readWriteBit);
-		//static uint32_t readOrWriteFullAddress(int *base, int base_len, int *sub, int sub_len, int *data, int data_len, int readWriteBit, bool quiet);
-		static uint32_t sendBytes(int b[], int lenB, int recLen);
-		static int* hexToBin(int hex_num, int bit_size);
-		static bool is_anchor;
-		static int anchor_id;
-		static byte rx_cal_conf[];
+		static uint32_t readOrWriteFullAddress(int* base, int base_len, int* sub, int sub_len, int* data, int data_len, int readWriteBit);
+		static uint32_t sendBytes(int b[], int lenB, int recLen); 
+		
 		static void resetIRQStatusBits();
 		static int getIRQBit();
 		static int readRXBuffer();
+
 		static void initLEDs();
+
+		//helper functions 
+		static int* hexToBin(int hex_num, int bit_size);
+
+		//private variables
+		static bool is_anchor;
+		static bool cmd_error;
+		static bool leds_init;
+		static int anchor_id;
+
+		//config arrays
+		static byte rx_cal_conf[];
+		static byte tx_fctrl_conf[];
+		static byte aon_dig_cfg_conf[];
 };
 extern DW3000Class DW3000;
 #endif
