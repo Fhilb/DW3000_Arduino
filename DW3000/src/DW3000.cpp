@@ -311,59 +311,59 @@ void DW3000Class::init() {
     int shCmd[] = { 0 };
     writeShortCommand(shCmd, 1); 
 
-    int data[] = {0x80,0xEB,0x7,0x0,0x0,0x1F}; //0xF0,0x2F //0x80,0x3E,0x0,0x0,0x0,0x1F  //0x0
-    DW3000Class::write(0x0, 0x3C, data, 6); //Set IRQ for successful received data frame
+    int data1[] = {0x80,0xEB,0x7,0x0,0x0,0x1F}; //0xF0,0x2F //0x80,0x3E,0x0,0x0,0x0,0x1F  //0x0
+    DW3000Class::write(0x0, 0x3C, data1, 6); //Set IRQ for successful received data frame
   
     int data2[] = { 0x03, 0x3C };
     DW3000Class::write(0x0, 0x24, data2, 2); //Frame length setup for Transmission  
 
-    int data11[] = {0x00,0x9, 0x0};
-    DW3000Class::write(0xA, 0x0, data11, 3); //AON_DIG_CFG register setup; sets up auto-rx calibration and on-wakeup GO2IDLE  //0xA
+    int data3[] = {0x00,0x9, 0x0};
+    DW3000Class::write(0xA, 0x0, data3, 3); //AON_DIG_CFG register setup; sets up auto-rx calibration and on-wakeup GO2IDLE  //0xA
 
     /*
      * Set RX and TX config
      */
-    int data15[] = { 0x40,0x02,0x00,0x10 }; //DGC_CFG0  //0x3
-    DW3000Class::write(0x3, 0x1C, data15, 4);
+    int data4[] = { 0x40,0x02,0x00,0x10 }; //DGC_CFG0  //0x3
+    DW3000Class::write(0x3, 0x1C, data4, 4);
 
-    int data16[] = { 0x89,0xa4,0x6d,0x1b }; //DGC_CFG1
-    DW3000Class::write(0x3, 0x20, data16, 4);
+    int data5[] = { 0x89,0xa4,0x6d,0x1b }; //DGC_CFG1
+    DW3000Class::write(0x3, 0x20, data5, 4);
 
-    int data17[] = { 0xFD,0xC0,0x01,0x00 }; //DGC_LUT_0
-    DW3000Class::write(0x3, 0x38, data17, 4);
+    int data6[] = { 0xFD,0xC0,0x01,0x00 }; //DGC_LUT_0
+    DW3000Class::write(0x3, 0x38, data6, 4);
    
-    int data18[] = { 0x3E,0xC4,0x01,0x00 }; //DGC_LUT_1
-    DW3000Class::write(0x3, 0x3C, data18, 4);
+    int data7[] = { 0x3E,0xC4,0x01,0x00 }; //DGC_LUT_1
+    DW3000Class::write(0x3, 0x3C, data7, 4);
     
-    int data19[] = { 0xBE,0xC6,0x01,0x00 }; //DGC_LUT_2
-    DW3000Class::write(0x3, 0x40, data19, 4);
+    int data8[] = { 0xBE,0xC6,0x01,0x00 }; //DGC_LUT_2
+    DW3000Class::write(0x3, 0x40, data8, 4);
     
-    int data20[] = { 0x7E,0xC7,0x01,0x00 }; //DGC_LUT_3
-    DW3000Class::write(0x3, 0x44, data20, 4);
+    int data9[] = { 0x7E,0xC7,0x01,0x00 }; //DGC_LUT_3
+    DW3000Class::write(0x3, 0x44, data9, 4);
     
-    int data21[] = { 0x36,0xCF,0x01,0x00 }; //DGC_LUT_4
-    DW3000Class::write(0x3, 0x48, data21, 4);
+    int data10[] = { 0x36,0xCF,0x01,0x00 }; //DGC_LUT_4
+    DW3000Class::write(0x3, 0x48, data10, 4);
     
-    int data22[] = { 0xB5,0xCF,0x01,0x00 }; //DGC_LUT_5
-    DW3000Class::write(0x3, 0x4C, data22, 4);
+    int data11[] = { 0xB5,0xCF,0x01,0x00 }; //DGC_LUT_5
+    DW3000Class::write(0x3, 0x4C, data11, 4);
     
-    int data23[] = { 0xF5,0xCF,0x01,0x00 }; //DGC_LUT_6
-    DW3000Class::write(0x3, 0x50, data23, 4);
+    int data12[] = { 0xF5,0xCF,0x01,0x00 }; //DGC_LUT_6
+    DW3000Class::write(0x3, 0x50, data12, 4);
 
-    int data3[] = { 0xF5,0xE4 };
-    DW3000Class::write(0x3, 0x18, data3, 2); //THR_64 value set to 0x32
+    int data13[] = { 0xF5,0xE4 };
+    DW3000Class::write(0x3, 0x18, data13, 2); //THR_64 value set to 0x32
 
     //SET PAC TO 32 (0x00) reg:06:00 bits:1-0, bit 4 to 0 (00001100) (0xC)
-    int data25[] = { 0xE };
-    DW3000Class::write(0x6, 0x0, data25, 1);  //0x6
+    int data14[] = { 0xE };
+    DW3000Class::write(0x6, 0x0, data14, 1);  //0x6
 
     //set SFD Detection timeout count to 1057 (0x21, 0x4); 1018 old: (0xFA, 0x3)
-    int data28[] = { 0x21, 0x4 };
-    DW3000Class::write(0x6, 0x2, data28, 2);
+    int data15[] = { 0x21, 0x4 };
+    DW3000Class::write(0x6, 0x2, data15, 2);
 
     //SET PREAMBLE CODE (RX_PCODE, TX_PCODE) TO 10 (reg:01:14) //Standard SFD Type is 11 (data: 0x56, 0x5), trying 00 (0x50, 0x5)
-    int data26[] = { 0x56, 0x5 };
-    DW3000Class::write(0x1, 0x14, data26, 2);  //0x1
+    int data16[] = { 0x56, 0x5 };
+    DW3000Class::write(0x1, 0x14, data16, 2);  //0x1
 
     // write preamble length, frame length, data rate and prf in TX_FCTRL  //PSR = 1024, TXFLEN = 3 Byte (1 data, 2 CRC) TXBR = 6.81Mb/s, TR Bit enabled, FINE_PLEN = 0x0
     // reg:00:24 bits 0 - 25
@@ -379,21 +379,21 @@ void DW3000Class::init() {
      */
 
 
-    int data6[] = { 0x14 };
-    DW3000Class::write(0x7, 0x48, data6, 1); //LDO_RLOAD to 0x14 //0x7
-    int data7[] = { 0xE };
-    DW3000Class::write(0x7, 0x1A, data7, 1); //RF_TX_CTRL_1 to 0x0E
-    int data45[] = { 0x34,0x11,0x07,0x1C };
-    DW3000Class::write(0x7, 0x1C, data45, 4); //RF_TX_CTRL_2 to 0x1C071134 (due to channel 5, else (9) to 0x1C010034)
+    int data17[] = { 0x14 };
+    DW3000Class::write(0x7, 0x48, data17, 1); //LDO_RLOAD to 0x14 //0x7
+    int data18[] = { 0xE };
+    DW3000Class::write(0x7, 0x1A, data18, 1); //RF_TX_CTRL_1 to 0x0E
+    int data19[] = { 0x34,0x11,0x07,0x1C };
+    DW3000Class::write(0x7, 0x1C, data19, 4); //RF_TX_CTRL_2 to 0x1C071134 (due to channel 5, else (9) to 0x1C010034)
 
-    int data9[] = { 0x3C,0x1F };
-    DW3000Class::write(0x9, 0x0, data9, 2); //PLL_CFG to 0x1F3C (due to channel 5, else (9) to 0x0F3C)  //0x9
+    int data20[] = { 0x3C,0x1F };
+    DW3000Class::write(0x9, 0x0, data20, 2); //PLL_CFG to 0x1F3C (due to channel 5, else (9) to 0x0F3C)  //0x9
 
-    int data10[] = { 0x81 };
-    DW3000Class::write(0x9, 0x8, data10, 1); //PLL_CAL config to 0x81
+    int data21[] = { 0x81 };
+    DW3000Class::write(0x9, 0x8, data21, 1); //PLL_CAL config to 0x81
 
-    int data13[] = { 0x11 };
-    int data14[] = { 0x0 }; //if finished with calibration go back in cal_mode //also used to reset LDO_CTRL to 0x0
+    int data22[] = { 0x11 };
+    int data23[] = { 0x0 }; //if finished with calibration go back in cal_mode //also used to reset LDO_CTRL to 0x0
  
     
     delay(200);
@@ -408,14 +408,14 @@ void DW3000Class::init() {
         else {
             if (i < 4) {
                 Serial.println("[WARNING] Antenna auto calibration failed! Retrying...");
-                DW3000Class::write(0x4, 0x0C, data13, 1);
+                DW3000Class::write(0x4, 0x0C, data22, 1);
             }
             else {
                 Serial.println("[ERROR] Antenna auto calibration failed! Aborting!");
             }
         }
     }
-    DW3000Class::write(0x4, 0x0C, data14, 1); //Reset antenna calibration to standard mode
+    DW3000Class::write(0x4, 0x0C, data23, 1); //Reset antenna calibration to standard mode
 
     DW3000Class::resetIRQStatusBits();
 
