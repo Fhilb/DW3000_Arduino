@@ -1485,8 +1485,8 @@ int dwt_configure(dwt_config_t *config)
         deca_usleep(DELAY_20uUSec);
         if ((dwt_read8bitoffsetreg(SYS_STATUS_ID, 0) & SYS_STATUS_CP_LOCK_BIT_MASK))
         {//PLL is locked
-      UART_puts("PLL is locked..");
-      UART_puts("\r\n");
+            UART_puts("PLL is locked..");
+            UART_puts("\r\n");
             flag=0;
             break;
         }
