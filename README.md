@@ -23,18 +23,14 @@ Have fun!
 
 void setup() {
 /* Standard configuration that has to be done in every setup: */
-  attachInterrupt(digitalPinToInterrupt(2), DW3000.interruptDetect, RISING);
-  pinMode(10, OUTPUT); //for now it has to be initalized manually. TODO
   Serial.begin(9600); 
   SPI.begin();
   
   
   /*Your code: */
   
+  DW3000.begin();
   DW3000.init(); 
-  int data[] = {0x03, 0xFA};
-  DW3000.write(0x0, 0x4, data, 2);
-  //setup code here
 }
 
 void loop() {
