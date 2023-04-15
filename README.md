@@ -1,5 +1,5 @@
 # DW3000_Arduino
-A simple, not beautiful but working basic DW3000 Library
+A simple, not beautiful but (not yet!) working basic DW3000 Library
 
 ## Introduction
 Hey folks!
