@@ -22,6 +22,8 @@
 class DW3000Class {
 	public:
 		static bool rx_rec;
+		static int config[9]; 
+
 		/* CONFIG SETTINGS */
 		static void setTXLEN(bool n);
 		static void setPreambleLength(uint16_t l);
@@ -32,6 +34,8 @@ class DW3000Class {
 
 		static int getAnchorID();
 		static uint32_t read(int base, int sub);
+		static uint16_t read16bit(int base, int sub);
+		static uint8_t read8bit(int base, int sub);
 		static uint32_t write(int base, int sub, int* data, int data_len);
 		static void init();
 		static void readInit();
@@ -42,9 +46,15 @@ class DW3000Class {
 		static void standardRX();
 		static void begin();
 		static void getMemInfo();
+		static bool checkForIDLE();
+		static void softReset();
+		static uint32_t readOTP(uint16_t addr);
+		static void writeSysConfig();
 
 	private:
 		static void setBit(byte data[], uint16_t index, bool b);
+
+		static void clearAONConfig();
 
 		static void setBitLow(byte data[], uint16_t index);
 		static void setBitHigh(byte data[], uint16_t index);

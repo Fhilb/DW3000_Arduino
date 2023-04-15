@@ -23,6 +23,9 @@ DW3000Class DW3000;
 #define TX_LED 3 //RED
 #define RX_LED 4 //GREEN
 
+int no_data[] = { 0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0}; //32 bit array for clearing zeroes
+
+int DW3000Class::config[9]; //TODO
 
 bool DW3000Class::leds_init = false;
 bool DW3000Class::cmd_error = false;
@@ -32,23 +35,6 @@ byte DW3000Class::rx_cal_conf[LEN_RX_CAL_CONF];
 byte DW3000Class::tx_fctrl_conf[LEN_TX_FCTRL_CONF];
 byte DW3000Class::aon_dig_cfg_conf[LEN_AON_DIG_CFG_CONF];
 
-
-
-//int test[] = { 128,9821,18293,19,1289,1289,238,1298,12983,1829,21438,1283,840,1289,472,8945,948,4938,389245,23489,58498,23,32849 };
-
-/*DW3000Class::DW3000(int _anchor_id) {
-    attachInterrupt(digitalPinToInterrupt(2), interruptDetect, RISING);
-	anchor_id = _anchor_id;
-    is_anchor = true;
-}
-
-DW3000Class::DW3000() {
-    anchor_id = -1;
-    is_anchor = false;
-    SPI.begin();
-    Serial.begin(9600);
-}*/
-
 void DW3000Class::begin() {
     delay(5);
     pinMode(CHIP_SELECT_PIN, OUTPUT);
@@ -57,6 +43,11 @@ void DW3000Class::begin() {
     attachInterrupt(digitalPinToInterrupt(2), DW3000Class::interruptDetect, RISING);
 }
 
+void DW3000Class::writeSysConfig() {
+
+}
+
+//Test for memory overflow
 void DW3000Class::getMemInfo()
 {
     extern unsigned int __data_start;
@@ -65,9 +56,6 @@ void DW3000Class::getMemInfo()
     extern unsigned int __bss_end;
     extern unsigned int __heap_start;
     extern void* __brkval;
-    //  extern void *__malloc_heap_start; --> apparently already declared as char*
-    //  extern void *__malloc_margin; --> apparently already declared as a size_t
-    //  RAMEND and SP seem to be available without declaration here
 
     Serial.println("--------------------------------------------");
 
@@ -188,11 +176,39 @@ uint32_t DW3000Class::sendBytes(int b[], int lenB, int recLen) { //WORKING
     return val;
 }
 
-
+bool DW3000Class::checkForIDLE() {
+    return read(GEN_CFG_AES_LOW_REG, 0x44) >> 16 == (SPIRDY_MASK | RCINIT_MASK) ? 1 : 0;
+}
 
 /*uint32_t DW3000Class::readOrWriteFullAddress(int* base, int base_len, int* sub, int sub_len, int* data, int data_len, int readWriteBit) {
     return DW3000Class::readOrWriteFullAddress(base, base_len, sub, sub_len, data, data_len, readWriteBit, false);
 }*/
+
+void DW3000Class::softReset() {
+    clearAONConfig();
+
+    int force_pll_clock[] = { 0x3 };
+    write(PMSC_REG, 0x04, force_pll_clock, 1);
+
+    write(PMSC_REG, NO_OFFSET, no_data, 1);
+    
+    delay(1);
+
+    int softreset_finish[] = { 0xFF };
+    write(PMSC_REG, NO_OFFSET, softreset_finish, 1);
+}
+
+void DW3000Class::clearAONConfig() {
+    write(AON_REG, NO_OFFSET, no_data, 2);
+    write(AON_REG, 0x14, no_data, 1);
+
+    write(AON_REG, 0x04, no_data, 1); //clear control of aon reg
+
+    int save_conf[] = {0x02};
+    write(AON_REG, 0x04, save_conf, 1);
+
+    delay(1);
+}
 
 uint32_t DW3000Class::readOrWriteFullAddress(int *base, int base_len, int *sub, int sub_len, int *data, int data_len, int readWriteBit) {
     int fill_base_len = 5;
@@ -295,6 +311,14 @@ uint32_t DW3000Class::read(int base, int sub) {
     return tmp;
 }
 
+uint16_t DW3000Class::read16bit(int base, int sub) {
+    return (uint16_t)(read(base, sub) >> 16);
+}
+
+uint8_t DW3000Class::read8bit(int base, int sub) {
+    return (uint8_t)(read(base, sub) >> 24);
+}
+
 uint32_t DW3000Class::write(int base, int sub, int *data, int data_len) {
     int* _base = DW3000Class::getBase(base);
     int* _sub = DW3000Class::getSub(sub);
@@ -305,11 +329,49 @@ uint32_t DW3000Class::write(int base, int sub, int *data, int data_len) {
     return 0;
 }
 
+uint32_t DW3000Class::readOTP(uint16_t addr) {
+    int manual_acc[] = { 0x01, 0x00 };
+    write(OTP_IF_REG, 0x08, manual_acc, 2);
+    
+    int otp_addr[2];
+    otp_addr[0] = { (uint8_t)(addr >> 16) };
+    otp_addr[1] = { (uint8_t)(addr & 0x00FF) };
+    write(OTP_IF_REG, 0x04, otp_addr, 2);
+
+    int read_strobe[] = { 0x02, 0x00 };
+    write(OTP_IF_REG, 0x08, read_strobe, 2);
+
+    return read(OTP_IF_REG, 0x10);
+}
+
 void DW3000Class::init() {
     Serial.println("\n+++ DecaWave DW3000 Test +++\n");
 
-    int shCmd[] = { 0 };
-    writeShortCommand(shCmd, 1); 
+    if (read(GEN_CFG_AES_LOW_REG, NO_OFFSET) != 0xDECA0302) {
+        Serial.println("[ERROR] DEV_ID IS WRONG!");
+        return;
+    }
+
+    uint32_t ldo_low = readOTP(0x04);
+    uint32_t ldo_high = readOTP(0x05);
+    uint32_t bias_tune = readOTP(0xA);
+
+    if (ldo_low != 0 && ldo_high != 0 && (bias_tune >> 16 & BIAS_CTRL_BIAS_MASK) != 0) {
+        Serial.println("[ERROR] LDO or BIAS_TUNE not programmed! Aborting!");
+        delay(2000);
+        return;
+    }
+
+    int xtrim_value[1];
+    xtrim_value[0] = readOTP(0x1E);
+
+    xtrim_value[0] = (xtrim_value[0] == 0 ? 0x7F : xtrim_value[0]);
+
+    write(FS_CTRL_REG, 0x14, xtrim_value, 1);
+
+
+    //ToDo from line 47 of makerfabsAnalysis.txt
+    writeSysConfig();
 
     int data1[] = {0x80,0xEB,0x7,0x0,0x0,0x1F}; //0xF0,0x2F //0x80,0x3E,0x0,0x0,0x0,0x1F  //0x0
     DW3000Class::write(0x0, 0x3C, data1, 6); //Set IRQ for successful received data frame
