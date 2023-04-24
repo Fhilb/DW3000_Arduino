@@ -25,8 +25,13 @@ class DW3000Class {
 		static int config[9]; 
 
 		/* CONFIG SETTINGS */
-		static void setTXLEN(bool n);
-		static void setPreambleLength(uint16_t l);
+		static void setChannel(uint8_t data);
+		static void setPreambleLength(uint8_t data);
+		static void setPreambleCode(uint8_t data);
+		static void setPACSize(uint8_t data);
+		static void setDatarate(uint8_t data);
+		static void setPHRMode(uint8_t data);
+		static void setPHRRate(uint8_t data);
 
 		/* INITS */
 		static void initTX_FCTRL();
