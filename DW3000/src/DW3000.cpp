@@ -23,6 +23,16 @@ DW3000Class DW3000;
 #define TX_LED 3 //RED
 #define RX_LED 4 //GREEN
 
+int config[] = { //CHAN; PREAMBLE LENGTH; PREAMBLE CODE; PAC; DATARATE; PHR_MODE; PHR_RATE;
+    CHANNEL_5,
+    PREAMBLE_128,
+    9, //same for tx and rx
+    PAC8,
+    DATARATE_6_8MB,
+    PHR_MODE_STANDARD,
+    PHR_RATE_6_8MB
+};
+
 int no_data[] = { 0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0}; //32 bit array for clearing zeroes
 
 int DW3000Class::config[9]; //TODO
@@ -30,10 +40,6 @@ int DW3000Class::config[9]; //TODO
 bool DW3000Class::leds_init = false;
 bool DW3000Class::cmd_error = false;
 bool DW3000Class::rx_rec = false;
-
-byte DW3000Class::rx_cal_conf[LEN_RX_CAL_CONF];
-byte DW3000Class::tx_fctrl_conf[LEN_TX_FCTRL_CONF];
-byte DW3000Class::aon_dig_cfg_conf[LEN_AON_DIG_CFG_CONF];
 
 void DW3000Class::begin() {
     delay(5);
@@ -771,68 +777,37 @@ void DW3000Class::initAONWakeUp() {
     //0x00, 0x9, 0x0
 }
 
-void DW3000Class::setTXLEN(bool n) {
-    //TODO
+
+/*
+    ==== CONFIGURATION FUNCTIONS ====
+*/
+
+void DW3000Class::setChannel(uint8_t data) {
+    if(data == CHANNEL_5 || data == CHANNEL_9) config[0] = data;
 }
 
-void DW3000Class::setPreambleLength(uint16_t l) {
-    switch (l) {
-    case 1:
-        setBit(tx_fctrl_conf, 12, 0);
-        setBit(tx_fctrl_conf, 13, 0);
-        setBit(tx_fctrl_conf, 14, 1);
-        setBit(tx_fctrl_conf, 15, 0);
-        break;
-    case 2:
-        setBit(tx_fctrl_conf, 12, 1);
-        setBit(tx_fctrl_conf, 13, 0);
-        setBit(tx_fctrl_conf, 14, 0);
-        setBit(tx_fctrl_conf, 15, 0);
-        break;
-    case 3:
-        setBit(tx_fctrl_conf, 12, 1);
-        setBit(tx_fctrl_conf, 13, 0);
-        setBit(tx_fctrl_conf, 14, 1);
-        setBit(tx_fctrl_conf, 15, 0);
-        break;
-    case 4:
-        setBit(tx_fctrl_conf, 12, 1);
-        setBit(tx_fctrl_conf, 13, 0);
-        setBit(tx_fctrl_conf, 14, 0);
-        setBit(tx_fctrl_conf, 15, 1);
-        break;
-    case 5:
-        setBit(tx_fctrl_conf, 12, 1);
-        setBit(tx_fctrl_conf, 13, 0);
-        setBit(tx_fctrl_conf, 14, 1);
-        setBit(tx_fctrl_conf, 15, 1);
-        break;
-    case 6:
-        setBit(tx_fctrl_conf, 12, 0);
-        setBit(tx_fctrl_conf, 13, 1);
-        setBit(tx_fctrl_conf, 14, 0);
-        setBit(tx_fctrl_conf, 15, 0);
-        break;
-    case 7:
-        setBit(tx_fctrl_conf, 12, 0);
-        setBit(tx_fctrl_conf, 13, 1);
-        setBit(tx_fctrl_conf, 14, 0);
-        setBit(tx_fctrl_conf, 15, 1);
-        break;
-    case 8:
-        setBit(tx_fctrl_conf, 12, 1);
-        setBit(tx_fctrl_conf, 13, 1);
-        setBit(tx_fctrl_conf, 14, 0);
-        setBit(tx_fctrl_conf, 15, 0);
-        break;
-    case 9:
-        setBit(tx_fctrl_conf, 12, 0);
-        setBit(tx_fctrl_conf, 13, 1);
-        setBit(tx_fctrl_conf, 14, 1);
-        setBit(tx_fctrl_conf, 15, 0);
-        break;
-    default:
-        Serial.println("[ERROR] Wrong preamble length given in setup!");
-        break;
-    }
+void DW3000Class::setPreambleLength(uint8_t data) {
+    if (data == PREAMBLE_32 || data == PREAMBLE_64 || data == PREAMBLE_1024 ||
+        data == PREAMBLE_256 || data == PREAMBLE_512 || data == PREAMBLE_1024 ||
+        data == PREAMBLE_1536 || data == PREAMBLE_2048 || data == PREAMBLE_4096) config[1] = data;
+}
+
+void DW3000Class::setPreambleCode(uint8_t data) {
+    if (data <= 12 && data >= 9) config[2] = data;
+}
+
+void DW3000Class::setPACSize(uint8_t data) {
+    if (data == PAC4 || data == PAC8 || data == PAC16 || data == PAC32) config[3] = data;
+}
+
+void DW3000Class::setDatarate(uint8_t data) {
+    if (data == DATARATE_6_8MB || data == DATARATE_850KB) config[4] = data;
+}
+
+void DW3000Class::setPHRMode(uint8_t data) {
+    if (data == PHR_MODE_STANDARD || data == PHR_MODE_LONG) config[5] = data;
+}
+
+void DW3000Class::setPHRRate(uint8_t data) {
+    if (data == PHR_RATE_6_8MB || data == PHR_RATE_850KB) config[6] = data;
 }
