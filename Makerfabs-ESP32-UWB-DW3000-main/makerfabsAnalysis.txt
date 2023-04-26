@@ -47,7 +47,7 @@ dwt_initialise():
 dwt_configure():
 	dwt_modify32bitoffsetreg():
 		write standard SYS_CFG config (00:10-0-31) write 0x188 (STDRD_SYS_CONFIG)
-		write set config by user (00:10-0-31)
+		write set config by user (00:10-0-31) (PHR MODE(bit 4, ind 5), PHR_RATE(bit 5, ind 6))
 		
 	if rx or tx preamble code > 24: ignore for now [ERROR] (SCP)
 	
