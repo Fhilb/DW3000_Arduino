@@ -6,6 +6,8 @@
 #define LEN_TX_FCTRL_CONF 6
 #define LEN_AON_DIG_CFG_CONF 3
 
+#define STDRD_SYS_CONFIG 0x188
+
 
 #define PREAMBLE_32 0x4
 #define PREAMBLE_64 0x1

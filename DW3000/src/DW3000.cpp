@@ -23,7 +23,9 @@ DW3000Class DW3000;
 #define TX_LED 3 //RED
 #define RX_LED 4 //GREEN
 
-int config[] = { //CHAN; PREAMBLE LENGTH; PREAMBLE CODE; PAC; DATARATE; PHR_MODE; PHR_RATE;
+int no_data[] = { 0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0}; //32 bit array for clearing zeroes
+
+int DW3000Class::config[] = { //CHAN; PREAMBLE LENGTH; PREAMBLE CODE; PAC; DATARATE; PHR_MODE; PHR_RATE;
     CHANNEL_5,
     PREAMBLE_128,
     9, //same for tx and rx
@@ -32,10 +34,6 @@ int config[] = { //CHAN; PREAMBLE LENGTH; PREAMBLE CODE; PAC; DATARATE; PHR_MODE
     PHR_MODE_STANDARD,
     PHR_RATE_6_8MB
 };
-
-int no_data[] = { 0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0}; //32 bit array for clearing zeroes
-
-int DW3000Class::config[9]; //TODO
 
 bool DW3000Class::leds_init = false;
 bool DW3000Class::cmd_error = false;
@@ -50,7 +48,8 @@ void DW3000Class::begin() {
 }
 
 void DW3000Class::writeSysConfig() {
-
+    int stdrd_data[] = { STDRD_SYS_CONFIG };
+    write(0x0, 0x10, stdrd_data, 1);
 }
 
 //Test for memory overflow
@@ -287,7 +286,7 @@ uint32_t DW3000Class::readOrWriteFullAddress(int *base, int base_len, int *sub, 
         Serial.print(" (BIN): ");
         Serial.println(res, BIN);
         return res;
-    }
+    } .
     else {
         Serial.print("Writing to ");
         for (int i = 0; i < fill_base_len; i++) {
