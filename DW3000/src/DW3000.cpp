@@ -48,8 +48,29 @@ void DW3000Class::begin() {
 }
 
 void DW3000Class::writeSysConfig() {
-    int stdrd_data[] = { STDRD_SYS_CONFIG };
-    write(0x0, 0x10, stdrd_data, 1);
+    int usr_cfg = (STDRD_SYS_CONFIG & 0xFF) | (config[5] << 3) | (config[6] << 4);
+    int usr_data[] = { usr_cfg & 0xFF, usr_cfg & 0xF00 };
+    write(0x0, 0x10, usr_data, 1);
+
+    if (config[2] > 24) {
+        Serial.println("[ERROR] SCP ERROR! TX & RX Preamble Code higher than 24!");
+    }
+
+    int otp_write[] = { 0x8, 0x70 };
+    if (config[1] >= 256) {
+        int ops_kick[] = {0x0, 0x4};
+        write(0x0B, 0x08, otp_write, 2);
+        write(0x0B, 0x08, ops_kick, 2);
+    }
+    else {
+        int ops_kick[] = {0x00, 0x14};
+        write(0x0B, 0x08, otp_write, 2);
+        write(0x0B, 0x08, ops_kick, 2);
+    }
+    write(0x06, 0x0, DTUNE0_CONFIG, 1);
+    int usr_dtune0_cfg[] = { DTUNE0_CONFIG | config[3]};
+    write(0x06, 0x0, usr_dtune0_cfg, 1);
+
 }
 
 //Test for memory overflow

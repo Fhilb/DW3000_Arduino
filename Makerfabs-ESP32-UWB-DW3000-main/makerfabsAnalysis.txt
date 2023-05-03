@@ -47,7 +47,7 @@ dwt_initialise():
 dwt_configure():
 	dwt_modify32bitoffsetreg():
 		write standard SYS_CFG config (00:10-0-31) write 0x188 (STDRD_SYS_CONFIG)
-		write set config by user (00:10-0-31) (PHR MODE(bit 4, ind 5), PHR_RATE(bit 5, ind 6))
+		write set config by user (00:10-0-31) (PHR MODE(bit 4), PHR_RATE(bit 5))
 		
 	if rx or tx preamble code > 24: ignore for now [ERROR] (SCP)
 	
@@ -57,7 +57,7 @@ dwt_configure():
 		modify32bitoffsetreg(1800, 1024)(0B:08-0-31)
 	else:
 		modify32bitoffsetreg(1800, 5120)(0B:08-0-31)
-	modify8bitoffsetreg(1AD, rxPAC)(06:00-0-7)
+	modify8bitoffsetreg(1AD, rxPAC)(06:00-0-7) //Done til here
 	write sts_len-1 (02:00-0-7)
 	write preamblefine_len to 0 or 0x8 (00:28-0-7)
 	write dtune3_id to 0xAF5F584C (06:0C-0-31)
