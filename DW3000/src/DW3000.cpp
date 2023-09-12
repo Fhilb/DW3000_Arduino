@@ -50,27 +50,190 @@ void DW3000Class::begin() {
 void DW3000Class::writeSysConfig() {
     int usr_cfg = (STDRD_SYS_CONFIG & 0xFF) | (config[5] << 3) | (config[6] << 4);
     int usr_data[] = { usr_cfg & 0xFF, usr_cfg & 0xF00 };
-    write(0x0, 0x10, usr_data, 1);
+    write(GEN_CFG_AES_LOW_REG, 0x10, usr_data, 1); //write user config
+
+    Serial.print("SYS_CFG looks as follows: ");
+    Serial.println(read(0x0, 0x10), BIN);
 
     if (config[2] > 24) {
         Serial.println("[ERROR] SCP ERROR! TX & RX Preamble Code higher than 24!");
     }
 
-    int otp_write[] = { 0x8, 0x70 };
-    if (config[1] >= 256) {
-        int ops_kick[] = {0x0, 0x4};
-        write(0x0B, 0x08, otp_write, 2);
-        write(0x0B, 0x08, ops_kick, 2);
+    int otp_write[] = config[1] >= 256 ? { 0x00, 0x04 } : { 0x00, 0x14 };
+
+    write(OTP_IF_REG, 0x08, otp_write, 2); //set OTP config
+
+    write(DRX_REG, 0x00, 0x00, 1); //reset DTUNE0_CONFIG
+
+    int usr_dtune0_cfg[] = { config[3] };
+    write(DRX_REG, 0x0, usr_dtune0_cfg, 1);
+
+    //64 = STS length
+    int sts_cfg[] = { 64 / 8 - 1};
+    write(STS_CFG_REG, 0x0, sts_cfg, 1);
+
+    write(GEN_CFG_AES_LOW_REG, 0x29, no_data, 1);
+
+    int dtune3_val[] = { 0xCC, 0x35, 0x5F, 0xAF }; //TODO if not working: change value back (p.147)
+    write(0x06, 0x0C, dtune3_val, 4);
+
+    chan_ctrl_val = read(GEN_CFG_AES_HIGH_REG, 0x14);  //Fetch and adjust CHAN_CTRL data
+    chan_ctrl_val &= (~0x1FFF);
+
+    chan_ctrl_val |= config[0]; //Write RF_CHAN
+
+    chan_ctrl_val |= 0x1F00 & (config[2] << 8);
+    chan_ctrl_val |= 0xF8 & (config[2] << 3);
+    chan_ctrl_val |= 0x06 & (0x0 << 1);
+
+    int chan_ctrl_data[] = {
+        (chan_ctrl_val & 0xFF),
+        (chan_ctrl_val & 0xFF00) >> 8,
+        (chan_ctrl_val & 0xFF0000) >> 16,
+        (chan_ctrl_val & 0xFF000000) >> 24
+    };
+
+    write(GEN_CFG_AES_HIGH_REG, 0x14, chan_ctrl_data, 4);  //Write new CHAN_CTRL data with updated values
+
+    int tx_fctrl_val = read(GEN_CFG_AES_LOW_REG, 0x24); 
+
+    tx_fctrl_val |= (0x3FF & config[1]); //Add preamble length
+    tx_fctrl_val |= (0x400 & config[4]); //Add data rate
+
+    int tx_fctrl_data[] = {
+        (tx_fctrl_val & 0xFF),
+        (tx_fctrl_val & 0xFF00) >> 8,
+        (tx_fctrl_val & 0xFF0000) >> 16,
+        (tx_fctrl_val & 0xFF000000) >> 24
+    };
+
+    write(GEN_CFG_AES_LOW_REG, 0x24, tx_fctrl_data, 4);
+
+    int drx_data[] = { 0x81 };
+    write(DRX_REG, 0x02, drx_data, 1);
+
+    if (config[0]) {
+        int rf_tx_ctrl_2_data[] = { 0x34, 0x00, 0x01, 0x1C };
+        int pll_conf[] = { 0x3C, 0x1F };
     }
     else {
-        int ops_kick[] = {0x00, 0x14};
-        write(0x0B, 0x08, otp_write, 2);
-        write(0x0B, 0x08, ops_kick, 2);
+        int rf_tx_ctrl_2_data[] = { 0x34, 0x11, 0x07, 0x1C };
+        int pll_conf[] = { 0x3C, 0x0F };
     }
-    write(0x06, 0x0, DTUNE0_CONFIG, 1);
-    int usr_dtune0_cfg[] = { DTUNE0_CONFIG | config[3]};
-    write(0x06, 0x0, usr_dtune0_cfg, 1);
 
+    write(RF_CONF_REG, 0x1C, rf_tx_ctrl_2_data, 4);
+    write(FS_CTRL_REG, 0x00, pll_conf, 2);
+
+    int ldo_rload_val[] = { 0x14 }; 
+    write(RF_CONF_REG, 0x51, ldo_rload_val, 1);
+
+    int rf_tx_ctrl_1_val[] = { 0x0E };
+    write(RF_CONF_REG, 0x1A, rf_tx_ctrl_1_val, 1);
+
+    int rf_pll_cal_val[] = { 0x81 };
+    write(FS_CTRL_REG, 0x08, rf_pll_cal_val, 1);
+
+    int sys_status_clear[] = { 0x02 };
+    write(GEN_CFG_AES_LOW_REG, 0x44, sys_status_clear, 1);
+    
+    int auto_clock_val[] = { 0x00, 0x02, 0x30 };
+    write(PMSC_REG, 0x04, auto_clock_val, 4); //Set clock to auto mode
+
+    int ainit2idle_val[] = { 0x00, 0x01 };
+    write(PMSC_REG, 0x08, ainit2idle_val, 2);
+
+    int success = 0;
+    for (int i = 0; i < 100; i++) {
+        if (read(GEN_CFG_AES_LOW_REG, 0x0) & 0x2) {
+            success = 1;
+            break;
+        }
+    }
+
+    if (!success) {
+        Serial.println("[ERROR] Couldn't lock PLL Clock!");
+    }
+    else {
+        Serial.println("[INFO] PLL is now locked.");
+    }
+
+    int otp_val = read(OTP_IF_REG, 0x08);
+    otp_val |= 0x40;
+    if (config[0]) otp_val |= 0x2000;
+
+    int otp_data[] = {
+        (otp_val & 0xFF),
+        (otp_val & 0xFF00) >> 8
+    };
+    write(OTP_IF_REG, 0x08, otp_data, 2);
+
+    int dgc_cfg[] = { 0x64 };
+    write(RX_TUNE_REG, 0x19, dgc_cfg, 1);
+
+    int ldo_ctrl_val = read(RF_CONF_REG, 0x48); //Save original LDO_CTRL data
+    int tmp_ldo = (0x105
+        0x100 |
+        0x4 |
+        0x1);
+    int tmp_ldo_data[] = {
+        (tmp_ldo & 0xFF),
+        (tmp_ldo & 0xFF00) >> 8
+    };
+    write(RF_CONF_REG, 0x48, tmp_ldo_data, 2); 
+
+    int rx_cal_data[] = { 0x01, 0x00, 0x02 }; 
+    write(EXT_SYNC_REG, 0x0C, rx_cal_data, 3); //Calibrate RX
+
+    delay(20);
+
+    int rx_cal_data2[] = { 0x10 | 0x01}; 
+    write(EXT_SYNC_REG, 0x0C, rx_cal_data2, 1); //Enable calibration
+
+    int succ = 0;
+    for (int i = 0; i < 100; i++) {
+        if (read(EXT_SYNC_REG, 0x20)) {
+            succ = 1;
+            break;
+        }
+        delay(10);
+    }
+
+    if (succ) {
+        Serial.println("[INFO] PGF calibration complete.");
+    }
+    else {
+        Serial.println("[ERROR] PGF calibration failed!");
+    }
+
+    write(EXT_SYNC_REG, 0x0C, no_data, 2);
+    int rx_cal_sts_data[] = { 0x01 };
+    write(EXT_SYNC_REG, 0x20, rx_cal_sts_data, 1);
+
+    int rx_cal_res = read(EXT_SYNC_REG, 0x14);
+    if (rx_cal_res & 0x1fffffff) {
+        Serial.println("[ERROR] PGF_CAL failed in stage I!");
+    }
+    rx_cal_res = read(EXT_SYNC_REG, 0x1C);
+    if (rx_cal_res & 0x1fffffff) {
+        Serial.println("[ERROR] PGF_CAL failed in stage Q!");
+    }
+
+    int ldo_rload_data[] = {
+        (ldo_ctrl_val & 0xFF),
+        (ldo_ctrl_val & 0xFF00) >> 8,
+        (ldo_ctrl_val & 0xFF0000) >> 16,
+        (ldo_ctrl_val & 0xFF000000) >> 24
+    };
+    write(RF_CONF_REG, 0x48, ldo_rload_data, 4); //Restore original LDO_CTRL data
+
+    
+}
+
+void DW3000Class::configureAsTX() {
+    int pg_delay_data[] = { 0x34 };
+    write(RF_CONF_REG, 0x1C, pg_delay_data, 1); //write pg_delay
+    int power_data[] = { 0xFD, 0xFD, 0xFD, 0xFD };
+    write(GEN_CFG_AES_HIGH_REG, 0x0C, power_data, 4);
 }
 
 //Test for memory overflow
@@ -213,15 +376,17 @@ bool DW3000Class::checkForIDLE() {
 void DW3000Class::softReset() {
     clearAONConfig();
 
-    int force_pll_clock[] = { 0x3 };
-    write(PMSC_REG, 0x04, force_pll_clock, 1);
-
-    write(PMSC_REG, NO_OFFSET, no_data, 1);
+    int sys_clk_data[] = { 0x1 };
+    write(PMSC_REG, 0x04, sys_clk_data, 1); //force clock to FAST_RC/4 clock
     
-    delay(1);
+    write(PMSC_REG, 0x00, no_data, 2); //init reset
 
-    int softreset_finish[] = { 0xFF };
-    write(PMSC_REG, NO_OFFSET, softreset_finish, 1);
+    delay(100);
+
+    int reset_data[] = { 0xFF, 0xFF };
+    write(PMSC_REG, 0x00, reset_data, 2); //return back
+
+    write(PMSC_REG, 0x04, no_data, 1); //set clock back to Auto mode
 }
 
 void DW3000Class::clearAONConfig() {
@@ -370,6 +535,7 @@ uint32_t DW3000Class::readOTP(uint16_t addr) {
     return read(OTP_IF_REG, 0x10);
 }
 
+
 void DW3000Class::init() {
     Serial.println("\n+++ DecaWave DW3000 Test +++\n");
 
@@ -378,13 +544,28 @@ void DW3000Class::init() {
         return;
     }
 
+    setBitHigh(GEN_CFG_AES_LOW_REG, 0x10, 4);
+
+    while (!checkForIDLE()) {
+        Serial.println("[WARNING] IDLE FAILED (stage 1)");
+        delay(100);
+    }
+
+    softReset();
+
+    delay(200);
+
+    while (!checkForIDLE()) {
+        Serial.println("[WARNING] IDLE FAILED (stage 2)");
+        delay(100);
+    }
+
     uint32_t ldo_low = readOTP(0x04);
     uint32_t ldo_high = readOTP(0x05);
     uint32_t bias_tune = readOTP(0xA);
 
     if (ldo_low != 0 && ldo_high != 0 && (bias_tune >> 16 & BIAS_CTRL_BIAS_MASK) != 0) {
         Serial.println("[ERROR] LDO or BIAS_TUNE not programmed! Aborting!");
-        delay(2000);
         return;
     }
 
@@ -396,7 +577,6 @@ void DW3000Class::init() {
     write(FS_CTRL_REG, 0x14, xtrim_value, 1);
 
 
-    //ToDo from line 47 of makerfabsAnalysis.txt
     writeSysConfig();
 
     int data1[] = {0x80,0xEB,0x7,0x0,0x0,0x1F}; //0xF0,0x2F //0x80,0x3E,0x0,0x0,0x0,0x1F  //0x0
@@ -759,30 +939,25 @@ void DW3000Class::standardRX() {
 }
 
 /*
-* Set bit on a specific index in a byte array
+* Set bit in a defined register address
 */
-void DW3000Class::setBit(byte data[], uint16_t index, bool b) {
-    uint16_t n_byte = index / 8;
-    uint8_t n_shift = index % 8;
-
-    if (n_byte >= index) {
-        Serial.println("[ERROR] Out of bounds error occured in setBit() method.");
-        return;
-    }
-    byte* tmpByte = &data[n_byte];
+void DW3000Class::setBit(int reg_addr, int sub_addr, int shift, bool b) {
+    int* tmpByte = read8bit(reg_addr, sub_addr);
     if (b) {
-        bitSet(*tmpByte, n_shift);
+        bitSet(*tmpByte, shift);
     }
     else {
-        bitClear(*tmpByte, n_shift);
+        bitClear(*tmpByte, shift);
     }
+    int data[] = { tmpByte };
+    write(reg_addr, sub_addr, data, 1);
 }
 
-void DW3000Class::setBitHigh(byte data[], uint16_t index) {
-    setBit(*data, index, 1);
+void DW3000Class::setBitHigh(int reg_addr, int sub_addr, int shift) {
+    setBit(reg_addr, sub_addr, shift, 1);
 }
-void DW3000Class::setBitLow(byte data[], uint16_t index) {
-    setBit(*data, index, 0);
+void DW3000Class::setBitLow(int reg_addr, int sub_addr, int shift) {
+    setBit(reg_addr, sub_addr, shift, 0);
 }
 
 void DW3000Class::initTX_FCTRL() {

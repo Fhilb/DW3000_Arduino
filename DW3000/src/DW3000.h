@@ -55,14 +55,15 @@ class DW3000Class {
 		static void softReset();
 		static uint32_t readOTP(uint16_t addr);
 		static void writeSysConfig();
+		static void configureAsTX();
 
 	private:
-		static void setBit(byte data[], uint16_t index, bool b);
+		static void setBit(int reg_addr, int sub_addr, int shift, bool b);
 
 		static void clearAONConfig();
 
-		static void setBitLow(byte data[], uint16_t index);
-		static void setBitHigh(byte data[], uint16_t index);
+		static void setBitLow(int reg_addr, int sub_addr, int shift);
+		static void setBitHigh(int reg_addr, int sub_addr, int shift);
 
 		static int* getBase(int hex_num);
 		static int* getSub(int hex_num);
