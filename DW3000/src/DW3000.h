@@ -37,6 +37,7 @@ class DW3000Class {
 		static void initTX_FCTRL();
 		static void initAONWakeUp();
 
+		static void setupTXSettings(int frame_data, int frame_length)
 		static int getAnchorID();
 		static uint32_t read(int base, int sub);
 		static uint16_t read16bit(int base, int sub);

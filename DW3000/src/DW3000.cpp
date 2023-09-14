@@ -236,6 +236,20 @@ void DW3000Class::configureAsTX() {
     write(GEN_CFG_AES_HIGH_REG, 0x0C, power_data, 4);
 }
 
+
+void DW3000Class::setupTXSettings(int *frame_data, int frame_length) {
+    write(TX_BUFFER_REG, 0x00, frame_data, frame_length);
+    int tx_fctrl_val = read(GEN_CFG_AES_LOW_REG, 0x24);
+    tx_fctrl_val &= 0xFC00; //Mask just the values that would be overwritten by a 2 byte write
+    tx_fctrl_val |= frame_length;
+
+    int tx_fctrl_data[] = {
+        (tx_fctrl_val & 0xFF),
+        (tx_fctrl_val & 0xFF00) >> 8
+    }
+    write(GEN_CFG_AES_LOW_REG, 0x24, tx_fctrl_data, 2);
+}
+
 //Test for memory overflow
 void DW3000Class::getMemInfo()
 {
@@ -920,9 +934,8 @@ void DW3000Class::standardTX() {
         cmd_error = false;
         int cmd[] = { 0 };
         writeShortCommand(cmd, 1);
+        delay(10);
     }
-    int data[] = { 0x36 };
-    DW3000Class::write(0x14, 0x0, data, 1);
     int cmd[] = { 1 };
     DW3000Class::writeShortCommand(cmd, 1);
 
