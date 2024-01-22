@@ -21,10 +21,16 @@
 
 class DW3000Class {
 	public:
-		static bool rx_rec;
 		static int config[9]; 
 
-		/* CONFIG SETTINGS */
+		static void spiSelect(uint8_t cs);
+
+		static void begin();
+		static void init();
+
+		static void writeSysConfig();
+		static void configureAsTX();
+
 		static void setChannel(uint8_t data);
 		static void setPreambleLength(uint8_t data);
 		static void setPreambleCode(uint8_t data);
@@ -32,37 +38,35 @@ class DW3000Class {
 		static void setDatarate(uint8_t data);
 		static void setPHRMode(uint8_t data);
 		static void setPHRRate(uint8_t data);
+		static void setTXFrame(int frame_data);
+		static void setFrameLength(int frame_len);
 
-		/* INITS */
-		static void initTX_FCTRL();
-		static void initAONWakeUp();
+		static int receivedFrameSucc();
+		static int sentFrameSucc();
 
-		static void setupTXSettings(int frame_data, int frame_length)
 		static int getAnchorID();
+		static void printFullConfig();
+		static int readRXBuffer();
+		static bool checkForIDLE();
+		static int checkForDevID();
+
 		static uint32_t read(int base, int sub);
-		static uint16_t read16bit(int base, int sub);
 		static uint8_t read8bit(int base, int sub);
+		static uint32_t readOTP(uint16_t addr);
+
 		static uint32_t write(int base, int sub, int* data, int data_len);
-		static void init();
-		static void readInit();
-		static void setLED1(uint8_t status);
-		static void setLED2(uint8_t status);
-		static void interruptDetect();
+
 		static void standardTX();
 		static void standardRX();
-		static void begin();
-		static void getMemInfo();
-		static bool checkForIDLE();
 		static void softReset();
-		static uint32_t readOTP(uint16_t addr);
-		static void writeSysConfig();
-		static void configureAsTX();
+		static void clearSystemStatus();
+		//static void interruptDetect();
+
 
 	private:
-		static void setBit(int reg_addr, int sub_addr, int shift, bool b);
-
 		static void clearAONConfig();
 
+		static void setBit(int reg_addr, int sub_addr, int shift, bool b);
 		static void setBitLow(int reg_addr, int sub_addr, int shift);
 		static void setBitHigh(int reg_addr, int sub_addr, int shift);
 
@@ -73,25 +77,12 @@ class DW3000Class {
 		static uint32_t readOrWriteFullAddress(int* base, int base_len, int* sub, int sub_len, int* data, int data_len, int readWriteBit);
 		static uint32_t sendBytes(int b[], int lenB, int recLen); 
 		
-		static void resetIRQStatusBits();
-		static int getIRQBit();
-		static int readRXBuffer();
-
-		static void initLEDs();
-
-		//helper functions 
 		static int* hexToBin(int hex_num, int bit_size);
 
-		//private variables
 		static bool is_anchor;
 		static bool cmd_error;
-		static bool leds_init;
 		static int anchor_id;
-
-		//config arrays
-		static byte rx_cal_conf[];
-		static byte tx_fctrl_conf[];
-		static byte aon_dig_cfg_conf[];
 };
+
 extern DW3000Class DW3000;
 #endif
