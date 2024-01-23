@@ -9,6 +9,7 @@ void setup()
   delay(5000);
   Serial.begin(115200); // Init Serial
   DW3000.begin(); // Init SPI
+  DW3000.hardReset(); // hard reset in case that the chip wasn't disconnected from power
   delay(200); // Wait for DW3000 chip to wake up
 
   while (!DW3000.checkForIDLE()) // Make sure that chip is in IDLE before continuing 
