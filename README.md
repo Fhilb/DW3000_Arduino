@@ -17,4 +17,4 @@ Additionally, you'll have to install the ESP32 Add-on for Arduino IDE, following
 
 
 ## Current problems
-After uploading code to your chip, you need to unplug and replug the chip for the example to work.
+- [x] After uploading code to your chip, you need to unplug and replug the chip for the example to work.
