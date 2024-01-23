@@ -20,6 +20,7 @@
 DW3000Class DW3000;
 
 #define CHIP_SELECT_PIN 4
+#define RST_PIN 27
 
 #define DEBUG_OUTPUT 0 //Turn to 1 to get all reads, writes, etc.
 
@@ -36,7 +37,6 @@ int DW3000Class::config[] = { //CHAN; PREAMBLE LENGTH; PREAMBLE CODE; PAC; DATAR
 };
 
 bool DW3000Class::cmd_error = false;
-bool DW3000Class::rx_rec = false;
 
 void DW3000Class::begin() {
     delay(5);
@@ -50,6 +50,13 @@ void DW3000Class::begin() {
 
     Serial.println("[INFO] SPI ready");
     
+}
+
+void DW3000Class::hardReset() {
+    pinMode(RST_PIN, OUTPUT);
+    digitalWrite(RST_PIN, LOW); // set reset pin active low to hard-reset DW3000 chip
+    delay(10);
+    pinMode(RST_PIN, INPUT); // get pin back in floating state
 }
 
 
@@ -367,7 +374,7 @@ uint32_t DW3000Class::sendBytes(int b[], int lenB, int recLen) { //WORKING
 }
 
 bool DW3000Class::checkForIDLE() {
-    return read(GEN_CFG_AES_LOW_REG, 0x44) >> 16 == (SPIRDY_MASK | RCINIT_MASK) ? 1 : 0;
+   return (read(0x0F, 0x30) >> 16 & PMSC_STATE_IDLE) == PMSC_STATE_IDLE || (read(0x00, 0x44) >> 16 & (SPIRDY_MASK | RCINIT_MASK)) == (SPIRDY_MASK | RCINIT_MASK) ? 1 : 0;
 }
 
 /*uint32_t DW3000Class::readOrWriteFullAddress(int* base, int base_len, int* sub, int sub_len, int* data, int data_len, int readWriteBit) {
@@ -543,7 +550,7 @@ uint32_t DW3000Class::readOTP(uint16_t addr) {
 
 void DW3000Class::init() {
     Serial.println("\n+++ DecaWave DW3000 Test +++\n");
-    
+
     if (!checkForDevID()) {
         Serial.println("[ERROR] Dev ID is wrong! Aborting!");
         return;

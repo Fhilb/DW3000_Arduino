@@ -59,6 +59,7 @@ class DW3000Class {
 		static void standardTX();
 		static void standardRX();
 		static void softReset();
+		static void hardReset();
 		static void clearSystemStatus();
 		//static void interruptDetect();
 

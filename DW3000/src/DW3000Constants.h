@@ -6,6 +6,8 @@
 #define LEN_TX_FCTRL_CONF 6
 #define LEN_AON_DIG_CFG_CONF 3
 
+#define PMSC_STATE_IDLE 0x3
+
 #define FCS_LEN 2
 
 #define STDRD_SYS_CONFIG 0x188
