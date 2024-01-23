@@ -167,10 +167,6 @@ void DW3000Class::writeSysConfig() {
         (tx_fctrl_val & 0xFF0000) >> 16,
         (tx_fctrl_val & 0xFF000000) >> 24
     };
-    Serial.println(tx_fctrl_data[0], BIN);
-    Serial.println(tx_fctrl_data[1], BIN);
-    Serial.println(tx_fctrl_data[2], BIN);
-    Serial.println(tx_fctrl_data[3], BIN);
     write(GEN_CFG_AES_LOW_REG, 0x24, tx_fctrl_data, 4);
 
     int drx_data[] = { 0x81 };
@@ -249,8 +245,6 @@ void DW3000Class::writeSysConfig() {
     write(EXT_SYNC_REG, 0x0C, rx_cal_data, 3); //Calibrate RX
 
     int l = read(0x04, 0x0C);
-    Serial.println("###################");
-    Serial.println(l, BIN);
 
     delay(20);
 
@@ -698,7 +692,7 @@ void DW3000Class::init() {
     if (DW3000Class::read(0x4, 0x20)) {
         int data23[] = {0x1};
         DW3000Class::write(0x4, 0x20, data23, 1);
-        Serial.println("RX Calibration was successful.");
+        Serial.println("[INFO] RX Calibration was successful.");
     }
     f = DW3000Class::read(0x4, 0x20);
     
@@ -709,7 +703,7 @@ void DW3000Class::init() {
 
     int data25[] = {0x38, 0x07, 0x03, 0x80}; 
     DW3000Class::write(0x11, 0x08, data25, 4);
-    Serial.println("\nInitialization finished.\n");
+    Serial.println("[INFO] Initialization finished.\n");
 }
 
 /*void DW3000Class::interruptDetect() { //On calling interrupt

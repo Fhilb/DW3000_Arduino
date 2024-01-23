@@ -1,13 +1,15 @@
 #include "DW3000.h"
 
-static int frame_buffer; // Variable to store the transmitted message
+static int frame_buffer = 0; // Variable to store the transmitted message
 static int rx_status; // Variable to store the current status of the receiver operation
+static int tx_status; // Variable to store the current status of the receiver operation
 
 void setup()
 {
   delay(5000);
   Serial.begin(115200); // Init Serial
   DW3000.begin(); // Init SPI
+  DW3000.hardReset(); // hard reset in case that the chip wasn't disconnected from power
   delay(200); // Wait for DW3000 chip to wake up
 
   while (!DW3000.checkForIDLE()) // Make sure that chip is in IDLE before continuing 
@@ -16,7 +18,7 @@ void setup()
     while (100);
   }
 
-  DW3000.softReset(); // Reset in case that the chip wasn't disconnected from power
+  DW3000.softReset(); 
   delay(200); // Wait for DW3000 chip to wake up
 
 
@@ -29,10 +31,33 @@ void setup()
   
   DW3000.init(); // Initialize chip (write default values, calibration, etc.)
   Serial.println("[INFO] Setup is finished.");
+
+  DW3000.configureAsTX(); // Configure basic settings for frame transmitting
 }
 
 void loop() 
 { 
+  /**       === Send PING ===        **/
+  if(frame_buffer > 1019) frame_buffer = 0;
+  
+  DW3000.setTXFrame(frame_buffer + 1); // Set content of frame
+  DW3000.setFrameLength(9); // Set Length of frame in bits
+
+  DW3000.standardTX(); // Send fast command for transmitting
+  delay(10); // Wait for frame to be sent
+  
+  while (!(tx_status = DW3000.sentFrameSucc()))
+  {
+    Serial.println("[ERROR] PING could not be sent succesfully!");
+  };
+  
+  DW3000.clearSystemStatus(); // Clear event status
+  
+  Serial.println("[INFO] Sent PING successfully.");  
+
+
+  /**       === Await PONG ===        **/
+  
   DW3000.standardRX(); // Send command to DW3000 to start the reception of frames
 
   while (!(rx_status = DW3000.receivedFrameSucc())) 
@@ -43,13 +68,15 @@ void loop()
 
     DW3000.clearSystemStatus();
     
-    Serial.println("[INFO] Received frame successfully.");  
+    Serial.println("[INFO] Received PONG successfully.");  
     Serial.print("Frame data (DEC): ");
-    Serial.println(frame_buffer, DEC);  
+    Serial.println(frame_buffer, DEC);  //in this example the frame_buffer output should always be +2
   }
   else // if rx_status returns error (2)
   {
     Serial.println("[ERROR] Receiver Error occured! Aborting event.");
     DW3000.clearSystemStatus();
   }
+
+  delay(1000); // delay between pings
 }
