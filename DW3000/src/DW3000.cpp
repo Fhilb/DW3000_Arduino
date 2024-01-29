@@ -25,6 +25,7 @@ DW3000Class DW3000;
 #define DEBUG_OUTPUT 0 //Turn to 1 to get all reads, writes, etc.
 
 int no_data[] = { 0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0}; //32 bit array for clearing zeroes
+int led_status = 0;
 
 int DW3000Class::config[] = { //CHAN; PREAMBLE LENGTH; PREAMBLE CODE; PAC; DATARATE; PHR_MODE; PHR_RATE;
     CHANNEL_5,
@@ -704,6 +705,29 @@ void DW3000Class::init() {
     int data25[] = {0x38, 0x07, 0x03, 0x80}; 
     DW3000Class::write(0x11, 0x08, data25, 4);
     Serial.println("[INFO] Initialization finished.\n");
+}
+
+void DW3000Class::setupGPIO() {
+    int data1[] = { 0xF0 };
+    write(0x05, 0x08, data1, 1); //Set GPIO0 - GPIO3 as OUTPUT on DW3000
+}
+
+void DW3000Class::pullLEDHigh(int led) { //led 1 - 3 possible
+    if (led > 7) return;
+    led_status = led_status + (1 << led);
+    Serial.print("led status: ");
+    Serial.println(led_status, BIN);
+    int data1[] = { led_status };
+    write(0x05, 0x0C, data1, 1);
+}
+
+void DW3000Class::pullLEDLow(int led) { //led 1 - 3 possible
+    if (led > 7) return;
+    led_status = led_status & ~((int)1 << led); //https://stackoverflow.com/questions/47981/how-to-set-clear-and-toggle-a-single-bit
+    Serial.print("led status: ");
+    Serial.println(led_status, BIN);
+    int data1[] = { led_status };
+    write(0x05, 0x0C, data1, 1);
 }
 
 /*void DW3000Class::interruptDetect() { //On calling interrupt

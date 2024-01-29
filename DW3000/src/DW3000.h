@@ -30,6 +30,7 @@ class DW3000Class {
 
 		static void writeSysConfig();
 		static void configureAsTX();
+		static void setupGPIO();
 
 		static void setChannel(uint8_t data);
 		static void setPreambleLength(uint8_t data);
@@ -61,6 +62,8 @@ class DW3000Class {
 		static void softReset();
 		static void hardReset();
 		static void clearSystemStatus();
+		static void pullLEDHigh(int led);
+		static void pullLEDLow(int led);
 		//static void interruptDetect();
 
 

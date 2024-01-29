@@ -6,7 +6,6 @@ static int tx_status; // Variable to store the current status of the receiver op
 
 void setup()
 {
-  delay(5000);
   Serial.begin(115200); // Init Serial
   DW3000.begin(); // Init SPI
   DW3000.hardReset(); // hard reset in case that the chip wasn't disconnected from power
@@ -30,6 +29,7 @@ void setup()
 
   
   DW3000.init(); // Initialize chip (write default values, calibration, etc.)
+  DW3000.setupGPIO(); //Setup the DW3000s GPIO pins for use of LEDs
   Serial.println("[INFO] Setup is finished.");
   
   DW3000.configureAsTX(); // Configure basic settings for frame transmitting
@@ -37,6 +37,7 @@ void setup()
 
 void loop()
 {
+  DW3000.pullLEDHigh(2);
   DW3000.setTXFrame(507); // Set content of frame
   DW3000.setFrameLength(9); // Set Length of frame in bits
 
@@ -51,6 +52,7 @@ void loop()
   DW3000.clearSystemStatus(); // Clear event status
 
   Serial.println("[INFO] Sent frame successfully.");  
+  DW3000.pullLEDLow(2);
 
   delay(TX_SENT_DELAY);
 }

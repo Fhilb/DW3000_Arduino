@@ -8,9 +8,9 @@ static int tx_status; // Variable to store the current status of the receiver op
 
 void setup()
 {
-  delay(5000);
   Serial.begin(115200); // Init Serial
   DW3000.begin(); // Init SPI 
+  DW3000.hardReset(); // hard reset in case that the chip wasn't disconnected from power
   delay(200); // Wait for DW3000 chip to wake up
 
   while (!DW3000.checkForIDLE()) // Make sure that chip is in IDLE before continuing 
@@ -31,6 +31,7 @@ void setup()
 
   
   DW3000.init(); // Initialize chip (write default values, calibration, etc.)
+  DW3000.setupGPIO(); //Setup the DW3000s GPIO pins for use of LEDs
   Serial.println("[INFO] Setup is finished.");
   
   DW3000.configureAsTX(); // Configure basic settings for frame transmitting
@@ -46,6 +47,7 @@ void loop()
   {}; // Wait until frame was received
   
   if (rx_status == 1) { // If frame reception was successful
+    DW3000.pullLEDHigh(1);
     frame_buffer = DW3000.read(0x12, 0x00); // Read RX_FRAME buffer0
 
     DW3000.clearSystemStatus();
@@ -54,9 +56,11 @@ void loop()
 
       /**       === Send PONG ===        **/
     delay(50); // Short delay to give time for PING-node to go into receive mode
+    DW3000.pullLEDLow(1);
 
     DW3000.setTXFrame(frame_buffer + 1); // Set content of frame
     DW3000.setFrameLength(9); // Set Length of frame in bits
+    DW3000.pullLEDHigh(2);
 
     DW3000.standardTX(); // Send fast command for transmitting
     delay(10); // Wait for frame to be sent
@@ -69,6 +73,7 @@ void loop()
     DW3000.clearSystemStatus(); // Clear event status
   
     Serial.println("[INFO] Sent PONG successfully.");
+    DW3000.pullLEDLow(2);
     
   }
   else // if rx_status returns error (2)

@@ -41,6 +41,9 @@ standardRX	KEYWORD2
 clearSystemStatus	KEYWORD2
 softReset	KEYWORD2
 hardReset	KEYWORD2
+setupGPIO	KEYWORD2
+pullLEDHigh	KEYWORD2
+pullLEDLow	KEYWORD2
 
 
 
