@@ -859,6 +859,10 @@ void DW3000Class::calculateTXRXdiff() { //calc diff on PING side
     * Calculate round trip time (see DW3000 User Manual page 248 for more)
     */
 
+    if (pong_tx < pong_rx || ping_rx < ping_tx) { // return if the data would result in incorrect/negative results
+        return;
+    }
+
     long long t_reply = pong_tx - pong_rx;
 
     long long t_round = ping_rx - ping_tx;
