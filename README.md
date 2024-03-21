@@ -24,5 +24,8 @@ Useful for checking for hardware faults as it is the easiest example.
 The ping device sends a message to the pong device, which increments the message by 1 and sends the incremented message back to the ping device.
 The output on the ping device should be incremented by 2 per cycle.
 
+### dw3000_ping_with_timestamp and dw3000_pong_with_timestamp
+The ping device sends a message to the pong device, which after a fixed delay sends a message back. By then comparing the send and receive timestamps on the ping device a distance between both devices can be estimated. This is a single-sided two-way-ranging system which due to its design isn't as accurate as a double-sided two-way-ranging system for example.
+
 ## Current problems
 - [x] After uploading code to your chip, you need to unplug and replug the chip for the example to work.
