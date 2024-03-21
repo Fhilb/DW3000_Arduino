@@ -39,26 +39,41 @@ class DW3000Class {
 		static void setDatarate(uint8_t data);
 		static void setPHRMode(uint8_t data);
 		static void setPHRRate(uint8_t data);
-		static void setTXFrame(int frame_data);
+		static void setTXFrame(unsigned long long frame_data);
 		static void setFrameLength(int frame_len);
+		static void setTXAntennaDelay(int delay);
 
 		static int receivedFrameSucc();
 		static int sentFrameSucc();
 
 		static int getAnchorID();
+		static int getTXAntennaDelay();
+		static float getClockOffset();
+		static int getRawClockOffset();
+		static float getTempInC();
 		static void printFullConfig();
-		static int readRXBuffer();
+		static void printRoundTripInformation();
+		static unsigned long long readRXBuffer();
 		static bool checkForIDLE();
 		static int checkForDevID();
 
 		static uint32_t read(int base, int sub);
 		static uint8_t read8bit(int base, int sub);
-		static uint32_t readOTP(uint16_t addr);
+		static uint32_t readOTP(uint8_t addr);
+		static unsigned long long readRXTimestamp();
+		static unsigned long long readTXTimestamp();
+		static void calculateTXRXdiff();
 
 		static uint32_t write(int base, int sub, int* data, int data_len);
 
+		static void writeTXDelay(int delay);
+		static void delayedTXThenRX();
+		static void prepareDelayedTX();
+		static void delayedTX();
+
 		static void standardTX();
 		static void standardRX();
+		static void TXInstantRX();
 		static void softReset();
 		static void hardReset();
 		static void clearSystemStatus();
@@ -82,10 +97,12 @@ class DW3000Class {
 		static uint32_t sendBytes(int b[], int lenB, int recLen); 
 		
 		static int* hexToBin(int hex_num, int bit_size);
+		static unsigned int countBits(unsigned int number);
 
 		static bool is_anchor;
 		static bool cmd_error;
 		static int anchor_id;
+		static void printDouble(double val, unsigned int precision, bool linebreak);
 };
 
 extern DW3000Class DW3000;

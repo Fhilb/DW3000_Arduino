@@ -22,10 +22,12 @@ DW3000Class DW3000;
 #define CHIP_SELECT_PIN 4
 #define RST_PIN 27
 
-#define DEBUG_OUTPUT 0 //Turn to 1 to get all reads, writes, etc.
+#define DEBUG_OUTPUT 0 //Turn to 1 to get all reads, writes, etc. as info in the console
 
 int no_data[] = { 0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0}; //32 bit array for clearing zeroes
 int led_status = 0;
+
+int antenna_delay = 0x4015;
 
 int DW3000Class::config[] = { //CHAN; PREAMBLE LENGTH; PREAMBLE CODE; PAC; DATARATE; PHR_MODE; PHR_RATE;
     CHANNEL_5,
@@ -289,6 +291,9 @@ void DW3000Class::writeSysConfig() {
         (ldo_ctrl_val & 0xFF000000) >> 24
     };
     write(RF_CONF_REG, 0x48, ldo_rload_data, 4); //Restore original LDO_CTRL data
+
+
+    setTXAntennaDelay(0x4015); //set default antenna delay
 }
 
 void DW3000Class::configureAsTX() {
@@ -299,21 +304,32 @@ void DW3000Class::configureAsTX() {
 }
 
 
-void DW3000Class::setTXFrame(int frame_data) {
-    if (frame_data > (1023 - FCS_LEN)) {
-        Serial.println("[ERROR] Frame is too long (> 1023 - FCS_LEN)!");
+void DW3000Class::setTXFrame(unsigned long long frame_data) {  // deprecated! use write(TX_BUFFER_REG, [...]);
+    if (frame_data > ((pow(2, 8 * 8) - FCS_LEN))) {
+        Serial.println("[ERROR] Frame is too long (> 1023 Bytes - FCS_LEN)!");
         return;
     }
 
-    int data[4]; //4 due to size of int of 4 Bytes
-    for (int i = 0; i < 4; i++) {
+    int data[8]; //8 due to size of int of 8 Bytes
+    for (int i = 0; i < 8; i++) {
         data[i] = (frame_data >> i * 8) & 0xFF;
     }
 
-    write(TX_BUFFER_REG, 0x00, data, 4);
+    write(TX_BUFFER_REG, 0x00, data, 8);
     //int h = read(TX_BUFFER_REG, 0x00);
     //Serial.println("Frame content: ");
     //Serial.println(h, BIN);
+}
+
+void DW3000Class::printRoundTripInformation() {
+    Serial.println("\nRound Trip Information:");
+    long long tx_ts = readTXTimestamp();
+    long long rx_ts = readRXTimestamp();
+
+    Serial.print("TX Timestamp: ");
+    Serial.println(tx_ts);
+    Serial.print("RX Timestamp: ");
+    Serial.println(rx_ts);
 }
 
 
@@ -527,17 +543,15 @@ uint32_t DW3000Class::write(int base, int sub, int *data, int data_len) {
     return 0;
 }
 
-uint32_t DW3000Class::readOTP(uint16_t addr) {
-    int manual_acc[] = { 0x01, 0x00 };
-    write(OTP_IF_REG, 0x08, manual_acc, 2);
-    
-    int otp_addr[2];
-    otp_addr[0] = { (uint8_t)(addr >> 16) };
-    otp_addr[1] = { (uint8_t)(addr & 0x00FF) };
-    write(OTP_IF_REG, 0x04, otp_addr, 2);
+uint32_t DW3000Class::readOTP(uint8_t addr) {
+    int otp_man[] = { 0x1 };
 
-    int read_strobe[] = { 0x02, 0x00 };
-    write(OTP_IF_REG, 0x08, read_strobe, 2);
+    int otp_addr[] = { addr };
+    write(OTP_IF_REG, 0x04, otp_addr, 1);
+
+
+    int read_otp[] = { 0x02 };
+    write(OTP_IF_REG, 0x08, read_otp, 1);
 
     return read(OTP_IF_REG, 0x10);
 }
@@ -571,10 +585,17 @@ void DW3000Class::init() {
     uint32_t ldo_low = readOTP(0x04);
     uint32_t ldo_high = readOTP(0x05);
     uint32_t bias_tune = readOTP(0xA);
+    bias_tune = (bias_tune >> 16) & BIAS_CTRL_BIAS_MASK;
     
-    if (ldo_low != 0 && ldo_high != 0 && (bias_tune >> 16 & BIAS_CTRL_BIAS_MASK) != 0) {
-        Serial.println("[ERROR] LDO or BIAS_TUNE not programmed! Aborting!");
-        return;
+    if (ldo_low != 0 && ldo_high != 0 && bias_tune != 0) {
+        int bias_data[] = {
+            bias_tune & 0xFF,
+            (bias_tune >> 8) & 0xFF
+        };
+        write(0x11, 0x1F, bias_data, 2);
+
+        int ldo_kick_data[] = { 0x00, 0x01 };
+        write(0x0B, 0x08, ldo_kick_data, 2);
     }
 
     int xtrim_value[1];
@@ -633,6 +654,12 @@ void DW3000Class::init() {
     //SET PAC TO 32 (0x00) reg:06:00 bits:1-0, bit 4 to 0 (00001100) (0xC)
     int data14[] = { 0x1C, 0x10, 0x81 };
     DW3000Class::write(0x6, 0x0, data14, 3); 
+
+    int data15[]{ 0x01, 0x40 };
+    write(0x01, 0x04, data15, 2); //change tx antenna delay to 0x4001
+
+    int data16[] = { 0x4 }; //enable temp sensor readings
+    write(0x07, 0x34, data16, 1);
 
     //SET PREAMBLE CODE (RX_PCODE, TX_PCODE) TO 10 (reg:01:14) //Standard SFD Type is 11 (data: 0x56, 0x5), trying 00 (0x50, 0x5)
     //int data16[] = { 0x4A, 0x09 };
@@ -702,7 +729,7 @@ void DW3000Class::init() {
     int data24[] = {0x00, 0x02, 0xB4};
     DW3000Class::write(0x11, 0x04, data24, 3); 
 
-    int data25[] = {0x38, 0x07, 0x03, 0x80}; 
+    int data25[] = { 0x38, 0x07, 0x03, 0x80 };
     DW3000Class::write(0x11, 0x08, data25, 4);
     Serial.println("[INFO] Initialization finished.\n");
 }
@@ -712,22 +739,138 @@ void DW3000Class::setupGPIO() {
     write(0x05, 0x08, data1, 1); //Set GPIO0 - GPIO3 as OUTPUT on DW3000
 }
 
-void DW3000Class::pullLEDHigh(int led) { //led 1 - 3 possible
+void DW3000Class::pullLEDHigh(int led) { //led 0 - 2 possible
     if (led > 7) return;
     led_status = led_status + (1 << led);
-    Serial.print("led status: ");
-    Serial.println(led_status, BIN);
     int data1[] = { led_status };
     write(0x05, 0x0C, data1, 1);
 }
 
-void DW3000Class::pullLEDLow(int led) { //led 1 - 3 possible
+void DW3000Class::pullLEDLow(int led) { //led 0 - 2 possible
     if (led > 7) return;
     led_status = led_status & ~((int)1 << led); //https://stackoverflow.com/questions/47981/how-to-set-clear-and-toggle-a-single-bit
-    Serial.print("led status: ");
-    Serial.println(led_status, BIN);
     int data1[] = { led_status };
     write(0x05, 0x0C, data1, 1);
+}
+
+void DW3000Class::writeTXDelay(int delay) {
+    int data[] = {
+        delay & 0xFF,
+        (delay & 0xFF00) >> 8,
+        (delay & 0xFF0000) >> 16,
+        (delay & 0xFF000000) >> 24,
+    };
+    write(0x00, 0x2C, data, 4);
+    //Serial.print("TX Delay: ");
+    //Serial.println(read(0x00, 0x2C));
+}
+
+void DW3000Class::delayedTXThenRX() { //Activates Transmission with delay programmed through writeTXDelay() and goes to receiver immediately
+    int data[] = { 1, 1, 1, 1 };
+    writeShortCommand(data, 4);
+}
+
+void DW3000Class::delayedTX() {
+    int data[] = { 1, 1 };
+    writeShortCommand(data, 2);
+}
+
+unsigned long long DW3000Class::readRXTimestamp() {
+    unsigned long long ts_low = read(0x0C, 0x00);
+    unsigned long long ts_high = read(0x0C, 0x04) & 0xFF;
+
+    unsigned long long rx_timestamp = (ts_high << 32) | ts_low;
+    /*Serial.print("RX: ");
+    Serial.println(ts_low);
+    Serial.println(ts_high); */
+
+    return rx_timestamp;
+}
+
+
+unsigned long long DW3000Class::readTXTimestamp() {
+    unsigned long long ts_low = read(0x00, 0x74);
+    unsigned long long ts_high = read(0x00, 0x78) & 0xFF;
+
+    unsigned long long tx_timestamp = (ts_high << 32) + ts_low;
+    /*Serial.print("TX: ");
+    Serial.println(ts_low);
+    Serial.println(ts_high);*/
+
+    return tx_timestamp;
+}
+
+
+void DW3000Class::prepareDelayedTX() {
+    unsigned long long rx_ts = readRXTimestamp();
+
+    long long exact_tx_timestamp = (long long)(rx_ts + TRANSMIT_DELAY) >> 8;
+
+    long long calc_tx_timestamp = ((rx_ts + TRANSMIT_DELAY) & ~TRANSMIT_DIFF) + antenna_delay;
+
+    int calc_tx_stamp_data[5]; // Size of 5 for 40 Bit Timestamp (40 bit / 8 = 5 Bytes)
+    for (int i = 0; i < 5; i++){
+        calc_tx_stamp_data[i] = (calc_tx_timestamp >> i * 8) & 0xFF;
+    }
+
+    int rx_stamp_data[5];
+    for (int i = 0; i < 5; i++){
+        rx_stamp_data[i] = (rx_ts >> i * 8) & 0xFF;
+    }
+
+    /* FRAME CONTENTS:
+    * 0x00 - 0x01: [Reserved] 16 Bit for sender-ID     //TODO add functionality to first 16 bit
+    * 0x02 - 0x06: [Used] Calculated Transmit Timestamp
+    * 0x07 - 0x0B: [Used] RX Timestamp Time
+    */
+
+    write(0x14, 0x02, calc_tx_stamp_data, 5);
+    write(0x14, 0x07, rx_stamp_data, 5);
+
+    setFrameLength(12); // (id(16 bits) + tx(40 bits) + rx(40 bits)) / 8 = 12 Bytes
+
+    //Write delay to register 
+    writeTXDelay(exact_tx_timestamp);
+}
+
+
+void DW3000Class::calculateTXRXdiff() { //calc diff on PING side
+    unsigned long long ping_tx = readTXTimestamp();
+    unsigned long long ping_rx = readRXTimestamp();
+
+    long double clk_offset = getClockOffset();
+    long double clock_offset = 1.0 + clk_offset;
+
+    /*
+    * Get RX and TX times from PONG side
+    */
+
+    unsigned int tx_low = read(RX_BUFFER_0_REG, 0x02);
+    unsigned int tx_high = read(RX_BUFFER_0_REG, 0x06) & 0xFF;
+
+    long long pong_tx = (long long)tx_high << 32 | tx_low;
+
+    unsigned int rx_low = read(RX_BUFFER_0_REG, 0x07);
+    unsigned int rx_high = read(RX_BUFFER_0_REG, 0x0B) & 0xFF;
+
+    long long pong_rx = (long long)rx_high << 32 | rx_low;
+
+    /*
+    * Calculate round trip time (see DW3000 User Manual page 248 for more)
+    */
+
+    long long t_reply = pong_tx - pong_rx;
+
+    long long t_round = ping_rx - ping_tx;
+
+    long long t_prop = (t_round - lround(t_reply * clock_offset)) / 2;
+
+    long double t_prop_ps = t_prop * PS_UNIT; 
+
+    long double t_prop_mm = t_prop_ps * SPEED_OF_LIGHT;
+
+    printDouble((t_prop_mm / 1000), 100, false); // second value sets the decimal places. 100 = 2 decimal places, 1000 = 3, 10000 = 4, ...
+    Serial.println("cm");
 }
 
 /*void DW3000Class::interruptDetect() { //On calling interrupt
@@ -770,6 +913,7 @@ void DW3000Class::pullLEDLow(int led) { //led 1 - 3 possible
     //initiateRX();
     Serial.println("Finished interrupt. Continuing...");
 }*/
+
 
 void DW3000Class::writeShortCommand(int cmd[], int cmd_len) {
     if (DEBUG_OUTPUT) Serial.print("Short Command WRITE: ");
@@ -821,20 +965,26 @@ int DW3000Class::sentFrameSucc() { //No frame sent: 0; frame sent: 1; error whil
     return 0;
 }
 
-int DW3000Class::readRXBuffer() { //TODO set length of read operation; Return in array
-    Serial.print("Reading RX Buffer0... ");
-    uint32_t buf0 = read(0x12, 0x0);
-    Serial.println(buf0);
+unsigned long long DW3000Class::readRXBuffer() { // deprecated! Use read(RX_BUFFER_0_REG, [...]); instead
+    unsigned long long buf0 = read(RX_BUFFER_0_REG, 0x0);
+    buf0 = buf0 + (read(0x12, 0x20) << 32);
+    
+    return buf0;
 }
 
 void DW3000Class::standardTX() {
-    int cmd[] = { 0x01 };
+    int cmd[] = { 0x01 }; //0x1
     DW3000Class::writeShortCommand(cmd, 1);
 }
 
 void DW3000Class::standardRX() {
-    int cmd[] = { 1,0 };
+    int cmd[] = { 1,0 }; //0x2
     DW3000Class::writeShortCommand(cmd, 2);
+}
+
+void DW3000Class::TXInstantRX() { // Execute tx, then set receiver to rx instantly
+    int cmd[] = { 1, 1, 0, 0 }; //0xC
+    DW3000Class::writeShortCommand(cmd, 4);
 }
 
 void DW3000Class::clearSystemStatus() {
@@ -850,7 +1000,7 @@ int DW3000Class::checkForDevID() {
     return 1;
 }
 
-void DW3000Class::setFrameLength(int frame_len) {
+void DW3000Class::setFrameLength(int frame_len) { // set Frame length in Bytes
     frame_len = frame_len + FCS_LEN;
     int curr_cfg = read(0x00, 0x24);
     if (frame_len > 1023) {
@@ -922,4 +1072,91 @@ void DW3000Class::setPHRMode(uint8_t data) {
 
 void DW3000Class::setPHRRate(uint8_t data) {
     if (data == PHR_RATE_6_8MB || data == PHR_RATE_850KB) config[6] = data;
+}
+
+void DW3000Class::setTXAntennaDelay(int delay) {
+    int d[] = {
+        delay & 0xFF,
+        (delay & 0xFF00) >> 8
+    };
+    antenna_delay = delay;
+    write(0x01, 0x04, d, 2);
+}
+
+int DW3000Class::getTXAntennaDelay() { //DEPRECATED use antenna_delay variable instead!
+    int delay = read(0x01, 0x04) & 0xFFFF;
+    return delay;
+}
+
+float DW3000Class::getClockOffset() {     
+    if (config[0] == CHANNEL_5) {
+        return getRawClockOffset() * CLOCK_OFFSET_CHAN_5_CONSTANT / 1000000;
+    }
+    else {
+        return getRawClockOffset() * CLOCK_OFFSET_CHAN_9_CONSTANT / 1000000;
+    }
+}
+
+int DW3000Class::getRawClockOffset() {
+    int raw_offset = read(0x06, 0x29) & 0x1FFFFF;
+    
+    if (raw_offset & (1 << 20)) {
+        raw_offset |= ~((1 << 21) - 1);
+    }
+
+    if (DEBUG_OUTPUT) {
+        Serial.print("Raw offset: ");
+        Serial.println(raw_offset);
+    }
+    return raw_offset;
+}
+
+
+float DW3000Class::getTempInC() {
+        int data1[] = { 0x4 };
+        write(0x07, 0x34, data1, 1); //enable temp sensor readings
+
+        int data2[] = { 0x1 };
+        write(0x08, 0x00, data2, 1); //enable poll
+
+        while (!(read(0x08, 0x04) & 0x01)) {
+        };
+        int res = read(0x08, 0x08);
+        res = (res & 0xFF00) >> 8;
+        int otp_temp = readOTP(0x09) & 0xFF;
+        float tmp = (float)((res - otp_temp) * 1.05f) + 22.0f;
+
+        int data3[] = { 0x00 };
+        write(0x08, 0x00, data3, 1); //Reset poll enable
+
+        return tmp;
+}
+
+
+unsigned int DW3000Class::countBits(unsigned int number) {
+    return (int)log2(number) + 1;
+}
+
+
+void DW3000Class::printDouble(double val, unsigned int precision, bool linebreak) { //https://forum.arduino.cc/t/printing-a-double-variable/44327/2
+    // prints val with number of decimal places determine by precision
+    // NOTE: precision is 1 followed by the number of zeros for the desired number of decimial places
+    // example: printDouble( 3.1415, 100); // prints 3.14 (two decimal places)
+
+    Serial.print(int(val));  //prints the int part
+    Serial.print("."); // print the decimal point
+    unsigned int frac;
+    if (val >= 0) {
+        frac = (val - int(val)) * precision;
+    }
+    else {
+        frac = (int(val) - val) * precision;
+    }
+    if (linebreak) {
+        Serial.println(frac, DEC);
+    }
+    else {
+        Serial.print(frac, DEC);
+    }
+    
 }
