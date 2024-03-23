@@ -27,7 +27,7 @@ DW3000Class DW3000;
 int no_data[] = { 0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0}; //32 bit array for clearing zeroes
 int led_status = 0;
 
-int antenna_delay = 0x4015;
+int antenna_delay = 0x3FCA; //the tinier the number, the longer the ranging results
 
 int DW3000Class::config[] = { //CHAN; PREAMBLE LENGTH; PREAMBLE CODE; PAC; DATARATE; PHR_MODE; PHR_RATE;
     CHANNEL_5,
@@ -102,44 +102,33 @@ void DW3000Class::printFullConfig() {
 }
 
 void DW3000Class::writeSysConfig() {
-    //printSystemConfig();
     int usr_cfg = (STDRD_SYS_CONFIG & 0xFFF) | (config[5] << 3) | (config[6] << 4);
-    /*Serial.println("config:");
-    Serial.println(config[5] << 5, BIN);
-    Serial.println(config[6] << 6, BIN);
-    Serial.println(usr_cfg & 0xFFF, BIN);*/
-    int usr_data[] = { usr_cfg & 0xFF, (usr_cfg & 0xF00)>>8};
-    /*Serial.print("usr_data: ");
-    Serial.print(usr_data[0]);
-    Serial.print(" ; ");
-    Serial.println(usr_data[1]);*/
-    write(GEN_CFG_AES_LOW_REG, 0x10, usr_data, 2); //write user config
+    
+    write(GEN_CFG_AES_LOW_REG, 0x10, usr_cfg);
    
     if (config[2] > 24) {
         Serial.println("[ERROR] SCP ERROR! TX & RX Preamble Code higher than 24!");
     }
     
-    int otp_write[] = { 0x0, 0x14 };
+    int otp_write = 0x1400;
 
     if (config[1] >= 256) {
-        otp_write[1] = 0x04;
+        otp_write |= 0x04;
     }
     
 
-    write(OTP_IF_REG, 0x08, otp_write, 2); //set OTP config
-    write(DRX_REG, 0x00, no_data, 1); //reset DTUNE0_CONFIG
+    write(OTP_IF_REG, 0x08, otp_write); //set OTP config
+    write(DRX_REG, 0x00, 0x00, 1); //reset DTUNE0_CONFIG
     
-    int usr_dtune0_cfg[] = { config[3] };
-    write(DRX_REG, 0x0, usr_dtune0_cfg, 1);
+    write(DRX_REG, 0x0, config[3]);
     
     //64 = STS length
-    int sts_cfg[] = { 64 / 8 - 1};
-    write(STS_CFG_REG, 0x0, sts_cfg, 1);
+    write(STS_CFG_REG, 0x0, 64 / 8 - 1);
     
-    write(GEN_CFG_AES_LOW_REG, 0x29, no_data, 1);
+    write(GEN_CFG_AES_LOW_REG, 0x29, 0x00, 1);
     
-    int dtune3_val[] = { 0x4C, 0x58, 0x5F, 0xAF }; //TODO if not working: change value back (p.147)
-    write(DRX_REG, 0x0C, dtune3_val, 4);
+    //int dtune3_val[] = { 0x4C, 0x58, 0x5F, 0xAF }; //TODO if not working: change value back (p.147)
+    write(DRX_REG, 0x0C, 0xAF5F584C);
     
     int chan_ctrl_val = read(GEN_CFG_AES_HIGH_REG, 0x14);  //Fetch and adjust CHAN_CTRL data
     chan_ctrl_val &= (~0x1FFF);
@@ -150,60 +139,41 @@ void DW3000Class::writeSysConfig() {
     chan_ctrl_val |= 0xF8 & (config[2] << 3);
     chan_ctrl_val |= 0x06 & (0x01 << 1);
 
-    int chan_ctrl_data[] = {
-        (chan_ctrl_val & 0xFF),
-        (chan_ctrl_val & 0xFF00) >> 8,
-        (chan_ctrl_val & 0xFF0000) >> 16,
-        (chan_ctrl_val & 0xFF000000) >> 24
-    };
-
-    write(GEN_CFG_AES_HIGH_REG, 0x14, chan_ctrl_data, 4);  //Write new CHAN_CTRL data with updated values
+    write(GEN_CFG_AES_HIGH_REG, 0x14, chan_ctrl_val);  //Write new CHAN_CTRL data with updated values
 
     int tx_fctrl_val = read(GEN_CFG_AES_LOW_REG, 0x24); 
 
     tx_fctrl_val |= (config[1] << 12); //Add preamble length
     tx_fctrl_val |= (config[4] << 10); //Add data rate
 
-    int tx_fctrl_data[] = {
-        (tx_fctrl_val & 0xFF),
-        (tx_fctrl_val & 0xFF00) >> 8,
-        (tx_fctrl_val & 0xFF0000) >> 16,
-        (tx_fctrl_val & 0xFF000000) >> 24
-    };
-    write(GEN_CFG_AES_LOW_REG, 0x24, tx_fctrl_data, 4);
+    write(GEN_CFG_AES_LOW_REG, 0x24, tx_fctrl_val);
 
-    int drx_data[] = { 0x81 };
-    write(DRX_REG, 0x02, drx_data, 1);
+    write(DRX_REG, 0x02, 0x81);
 
-    int rf_tx_ctrl_2_data[] = { 0x34, 0x11, 0x07, 0x1C };
-    int pll_conf[] = { 0x3C, 0x0F };
+    int rf_tx_ctrl_2 = 0x1C071134;
+    int pll_conf = 0x0F3C;
 
     if (config[0]) {
-        rf_tx_ctrl_2_data[1] = 0x00;
-        rf_tx_ctrl_2_data[2] = 0x01;
-        pll_conf[1] = 0x1F;
+        rf_tx_ctrl_2 &= ~0x00FFFF;
+        rf_tx_ctrl_2 |=  0x000001;
+        pll_conf &= 0x00FF;
+        pll_conf |= 0x001F;
     }
 
-    write(RF_CONF_REG, 0x1C, rf_tx_ctrl_2_data, 4);
-    write(FS_CTRL_REG, 0x00, pll_conf, 2);
+    write(RF_CONF_REG, 0x1C, rf_tx_ctrl_2);
+    write(FS_CTRL_REG, 0x00, pll_conf);
 
-    int ldo_rload_val[] = { 0x14 }; 
-    write(RF_CONF_REG, 0x51, ldo_rload_val, 1);
+    write(RF_CONF_REG, 0x51, 0x14);
 
-    int rf_tx_ctrl_1_val[] = { 0x0E };
-    write(RF_CONF_REG, 0x1A, rf_tx_ctrl_1_val, 1);
+    write(RF_CONF_REG, 0x1A, 0x0E);
 
-    int rf_pll_cal_val[] = { 0x81 };
-    write(FS_CTRL_REG, 0x08, rf_pll_cal_val, 1);
+    write(FS_CTRL_REG, 0x08, 0x81);
 
-    int sys_status_clear[] = { 0x02 };
-    write(GEN_CFG_AES_LOW_REG, 0x44, sys_status_clear, 1);
+    write(GEN_CFG_AES_LOW_REG, 0x44, 0x02);
     
-    int auto_clock_val[] = { 0x00, 0x02, 0x30 };
-    write(PMSC_REG, 0x04, auto_clock_val, 4); //Set clock to auto mode
+    write(PMSC_REG, 0x04, 0x300200); //Set clock to auto mode
 
-    int ainit2idle_val[] = { 0x38, 0x01 };
-    write(PMSC_REG, 0x08, ainit2idle_val, 2);
+    write(PMSC_REG, 0x08, 0x0138);
 
     int success = 0;
     for (int i = 0; i < 100; i++) {
@@ -224,35 +194,26 @@ void DW3000Class::writeSysConfig() {
     otp_val |= 0x40;
     if (config[0]) otp_val |= 0x2000;
 
-    int otp_data[] = {
-        (otp_val & 0xFF),
-        (otp_val & 0xFF00) >> 8
-    };
-    write(OTP_IF_REG, 0x08, otp_data, 2);
 
-    int dgc_cfg[] = { 0xF0 };
-    write(RX_TUNE_REG, 0x19, dgc_cfg, 1);
+    write(OTP_IF_REG, 0x08, otp_val);
+
+    write(RX_TUNE_REG, 0x19, 0xF0);
 
     int ldo_ctrl_val = read(RF_CONF_REG, 0x48); //Save original LDO_CTRL data
     int tmp_ldo = (0x105 |
         0x100 |
         0x4 |
         0x1);
-    int tmp_ldo_data[] = {
-        (tmp_ldo & 0xFF),
-        (tmp_ldo & 0xFF00) >> 8
-    };
-    write(RF_CONF_REG, 0x48, tmp_ldo_data, 2); 
 
-    int rx_cal_data[] = { 0x00, 0x00, 0x02 };
-    write(EXT_SYNC_REG, 0x0C, rx_cal_data, 3); //Calibrate RX
+    write(RF_CONF_REG, 0x48, tmp_ldo);
+
+    write(EXT_SYNC_REG, 0x0C, 0x020000); //Calibrate RX
 
     int l = read(0x04, 0x0C);
 
     delay(20);
 
-    int rx_cal_data2[] = { 0x10 | 0x01 };
-    write(EXT_SYNC_REG, 0x0C, rx_cal_data2, 1); //Enable calibration
+    write(EXT_SYNC_REG, 0x0C, 0x11); //Enable calibration
 
     int succ = 0;
     for (int i = 0; i < 100; i++) {
@@ -270,9 +231,8 @@ void DW3000Class::writeSysConfig() {
         Serial.println("[ERROR] PGF calibration failed!");
     }
 
-    write(EXT_SYNC_REG, 0x0C, no_data, 2);
-    int rx_cal_sts_data[] = { 0x01 };
-    write(EXT_SYNC_REG, 0x20, rx_cal_sts_data, 1);
+    write(EXT_SYNC_REG, 0x0C, 0x00);
+    write(EXT_SYNC_REG, 0x20, 0x01);
 
     int rx_cal_res = read(EXT_SYNC_REG, 0x14);
     if (rx_cal_res == 0x1fffffff) {
@@ -283,24 +243,14 @@ void DW3000Class::writeSysConfig() {
         Serial.println("[ERROR] PGF_CAL failed in stage Q!");
     }
 
+    write(RF_CONF_REG, 0x48, ldo_ctrl_val); //Restore original LDO_CTRL data
 
-    int ldo_rload_data[] = {
-        (ldo_ctrl_val & 0xFF),
-        (ldo_ctrl_val & 0xFF00) >> 8,
-        (ldo_ctrl_val & 0xFF0000) >> 16,
-        (ldo_ctrl_val & 0xFF000000) >> 24
-    };
-    write(RF_CONF_REG, 0x48, ldo_rload_data, 4); //Restore original LDO_CTRL data
-
-
-    setTXAntennaDelay(0x4015); //set default antenna delay
+    setTXAntennaDelay(antenna_delay); //set default antenna delay
 }
 
 void DW3000Class::configureAsTX() {
-    int pg_delay_data[] = { 0x34 };
-    write(RF_CONF_REG, 0x1C, pg_delay_data, 1); //write pg_delay
-    int power_data[] = { 0xFD, 0xFD, 0xFD, 0xFD };
-    write(GEN_CFG_AES_HIGH_REG, 0x0C, power_data, 4);
+    write(RF_CONF_REG, 0x1C, 0x34); //write pg_delay
+    write(GEN_CFG_AES_HIGH_REG, 0x0C, 0xFDFDFDFD);
 }
 
 
@@ -310,15 +260,7 @@ void DW3000Class::setTXFrame(unsigned long long frame_data) {  // deprecated! us
         return;
     }
 
-    int data[8]; //8 due to size of int of 8 Bytes
-    for (int i = 0; i < 8; i++) {
-        data[i] = (frame_data >> i * 8) & 0xFF;
-    }
-
-    write(TX_BUFFER_REG, 0x00, data, 8);
-    //int h = read(TX_BUFFER_REG, 0x00);
-    //Serial.println("Frame content: ");
-    //Serial.println(h, BIN);
+    write(TX_BUFFER_REG, 0x00, frame_data);
 }
 
 void DW3000Class::printRoundTripInformation() {
@@ -330,29 +272,6 @@ void DW3000Class::printRoundTripInformation() {
     Serial.println(tx_ts);
     Serial.print("RX Timestamp: ");
     Serial.println(rx_ts);
-}
-
-
-int* DW3000Class::getBase(int hex_num)
-{
-    return hexToBin(hex_num, 5);
-}
-
-int* DW3000Class::getSub(int hex_num)
-{
-    return hexToBin(hex_num, 7);
-}
-
-int* DW3000Class::hexToBin(int hex_num, int bit_size)
-{
-    int bit_count = bit_size;
-    int* binary_num = (int*)malloc(bit_count * sizeof(int));
-    int i;
-    for (i = bit_count - 1; i >= 0; i--) {
-        binary_num[i] = hex_num % 2;
-        hex_num >>= 1;
-    }
-    return binary_num;
 }
 
 int DW3000Class::getAnchorID() {
@@ -388,143 +307,102 @@ bool DW3000Class::checkForIDLE() {
    return (read(0x0F, 0x30) >> 16 & PMSC_STATE_IDLE) == PMSC_STATE_IDLE || (read(0x00, 0x44) >> 16 & (SPIRDY_MASK | RCINIT_MASK)) == (SPIRDY_MASK | RCINIT_MASK) ? 1 : 0;
 }
 
-/*uint32_t DW3000Class::readOrWriteFullAddress(int* base, int base_len, int* sub, int sub_len, int* data, int data_len, int readWriteBit) {
-    return DW3000Class::readOrWriteFullAddress(base, base_len, sub, sub_len, data, data_len, readWriteBit, false);
-}*/
-
 void DW3000Class::softReset() {
     clearAONConfig();
 
-    int sys_clk_data[] = { 0x1 };
-    write(PMSC_REG, 0x04, sys_clk_data, 1); //force clock to FAST_RC/4 clock
+    write(PMSC_REG, 0x04, 0x1); //force clock to FAST_RC/4 clock
     
-    write(PMSC_REG, 0x00, no_data, 2); //init reset
+    write(PMSC_REG, 0x00, 0x00, 2); //init reset
 
     delay(100);
 
-    int reset_data[] = { 0xFF, 0xFF };
-    write(PMSC_REG, 0x00, reset_data, 2); //return back
+    write(PMSC_REG, 0x00, 0xFFFF); //return back
 
-    write(PMSC_REG, 0x04, no_data, 1); //set clock back to Auto mode
+    write(PMSC_REG, 0x04, 0x00, 1); //set clock back to Auto mode
 }
 
 void DW3000Class::clearAONConfig() {
-    write(AON_REG, NO_OFFSET, no_data, 2);
-    write(AON_REG, 0x14, no_data, 1);
+    write(AON_REG, NO_OFFSET, 0x00, 2);
+    write(AON_REG, 0x14, 0x00, 1);
 
-    write(AON_REG, 0x04, no_data, 1); //clear control of aon reg
+    write(AON_REG, 0x04, 0x00, 1); //clear control of aon reg
 
-    int save_conf[] = {0x02};
-    write(AON_REG, 0x04, save_conf, 1);
+    write(AON_REG, 0x04, 0x02);
 
     delay(1);
 }
 
-uint32_t DW3000Class::readOrWriteFullAddress(int *base, int base_len, int *sub, int sub_len, int *data, int data_len, int readWriteBit) {
-    int fill_base_len = 5;
-    int num_zeros = fill_base_len - base_len;
-    if (num_zeros < 0) {
-        num_zeros = 0;
-    }
-    int fill_base[fill_base_len]; //fill leading zeros
+uint32_t DW3000Class::readOrWriteFullAddress(uint32_t base, uint32_t sub, uint32_t data, uint32_t data_len, uint32_t readWriteBit) {
+    uint32_t header = 0x00;
 
-    for (int i = 0; i < fill_base_len; i++) {
-        fill_base[num_zeros + i] = base[i];
-    }
+    if (readWriteBit) header = header | 0x80;
 
+    header = header | ((base & 0x1F) << 1);
 
-    int fill_sub_len = 7;
-    int fill_sub[fill_sub_len]; //fill leading zeros  
-    num_zeros = fill_sub_len - sub_len;
-    if (num_zeros < 0) {
-        num_zeros = 0;
-    }
-    for (int i = 0; i < fill_sub_len; i++) {
-        fill_sub[num_zeros + i] = sub[i];
+    if (sub > 0) {
+        header = header | 0x40;
+        header = header << 8;
+        header = header | ((sub & 0x7F) << 2);
     }
 
-    int first_byte[8] = { readWriteBit, 1 };
-    for (int i = 0; i < fill_base_len; i++) {
-        first_byte[i + 2] = fill_base[i];
-    }
-    first_byte[7] = fill_sub[0];
+    uint32_t header_size = header > 0xFF ? 2 : 1;
+    uint32_t res = 0;
 
-    int second_byte[8];
-    second_byte[8 - 1] = 0; //Last two bits are set to 0 (mode selector bits)
-    second_byte[8 - 2] = 0;
+    if (!readWriteBit) {
+        int headerArr[header_size];
 
-    for (int i = 0; i < fill_sub_len - 1; i++) {
-        second_byte[i] = fill_sub[i + 1];
-    }
-
-    int byteOne = 0;
-    int byteTwo = 0;
-
-    for (int i = 7; i >= 0; i--) {
-        byteOne = byteOne + first_byte[i] * round(pow(2, 7 - i));
-        byteTwo = byteTwo + second_byte[i] * round(pow(2, 7 - i));
-    }
-
-    uint32_t val;
-
-    int bytes[data_len + 2] = { byteOne, byteTwo };
-
-    for (int i = 0; i < data_len; i++) {
-        bytes[i + 2] = data[i];
-    }
-
-    uint32_t res;
-
-    if (readWriteBit == 0) {
-        if (DEBUG_OUTPUT) {
-            Serial.print("Reading from ");
-            for (int i = 0; i < fill_base_len; i++) {
-                Serial.print(fill_base[i]);
-            }
-            Serial.print(":");
-            for (int i = 0; i < fill_sub_len; i++) {
-                Serial.print(fill_sub[i]);
-            }
-            Serial.println("");
+        if (header_size == 1) {
+            headerArr[0] = header;
         }
-        
-        res = (uint32_t)sendBytes(bytes, 2 + data_len, 4);
-
-        if (DEBUG_OUTPUT) {
-            Serial.print("Received result (HEX): ");
-            Serial.print(res, HEX);
-            Serial.print(" (BIN): ");
-            Serial.println(res, BIN);
+        else {
+            headerArr[0] = (header & 0xFF00) >> 8;
+            headerArr[1] = header & 0xFF;
         }
+
+        res = (uint32_t)sendBytes(headerArr, header_size, 4);
         return res;
     }
     else {
-        if (DEBUG_OUTPUT) {
-            Serial.print("Writing to ");
-            for (int i = 0; i < fill_base_len; i++) {
-                Serial.print(fill_base[i]);
+        uint32_t payload_bytes = 0;
+        if (data_len == 0) {
+            if (data > 0) {
+                uint32_t payload_bits = countBits(data);
+                payload_bytes = (payload_bits - (payload_bits % 8)) / 8; //calc the used bytes for transaction
+                if ((payload_bits % 8) > 0) {
+                    payload_bytes++;
+                }
             }
-            Serial.print(":");
-            for (int i = 0; i < fill_sub_len; i++) {
-                Serial.print(fill_sub[i]);
+            else {
+                payload_bytes = 1;
             }
-            Serial.println("");
         }
-        res = (uint32_t)sendBytes(bytes, 2 + data_len, 0);
+        else {
+            payload_bytes = data_len;
+        }
+        int payload[header_size + payload_bytes];
+
+        if (header_size == 1) {
+            payload[0] = header;
+        }
+        else {
+            payload[0] = (header & 0xFF00) >> 8;
+            payload[1] = header & 0xFF;
+        }
+
+        for (int i = 0; i < payload_bytes; i++) {
+            payload[header_size + i] = (data >> i * 8) & 0xFF;
+        }
+
+        res = (uint32_t)sendBytes(payload, 2 + payload_bytes, 0);
         return res;
     }
 }
 
+
 uint32_t DW3000Class::read(int base, int sub) {
-    int* _base = DW3000Class::getBase(base);
-    int* _sub = DW3000Class::getSub(sub);
-    
-    int t[] = {0};
     uint32_t tmp;
-    tmp = readOrWriteFullAddress(_base, 5, _sub, 7, t, 0, 0);
+    tmp = readOrWriteFullAddress(base, sub, 0, 0, 0);
     if (DEBUG_OUTPUT) Serial.println("");
-    free(_base);
-    free(_sub);
 
     return tmp;
 }
@@ -533,25 +411,17 @@ uint8_t DW3000Class::read8bit(int base, int sub) {
     return (uint8_t)(read(base, sub) >> 24);
 }
 
-uint32_t DW3000Class::write(int base, int sub, int *data, int data_len) {
-    int* _base = DW3000Class::getBase(base);
-    int* _sub = DW3000Class::getSub(sub);
-    readOrWriteFullAddress(_base, 5, _sub, 7, data, data_len, 1);
-    free(_base);
-    free(_sub);
+uint32_t DW3000Class::write(int base, int sub, int data, int data_len) {
+    return readOrWriteFullAddress(base, sub, data, data_len, 1);
+}
 
-    return 0;
+uint32_t DW3000Class::write(int base, int sub, int data) {
+    return readOrWriteFullAddress(base, sub, data, 0, 1);
 }
 
 uint32_t DW3000Class::readOTP(uint8_t addr) {
-    int otp_man[] = { 0x1 };
-
-    int otp_addr[] = { addr };
-    write(OTP_IF_REG, 0x04, otp_addr, 1);
-
-
-    int read_otp[] = { 0x02 };
-    write(OTP_IF_REG, 0x08, read_otp, 1);
+    write(OTP_IF_REG, 0x04, addr);
+    write(OTP_IF_REG, 0x08, 0x02);
 
     return read(OTP_IF_REG, 0x10);
 }
@@ -565,7 +435,7 @@ void DW3000Class::init() {
         return;
     }
     
-    setBitHigh(GEN_CFG_AES_LOW_REG, 0x10, 4); //MOD2
+    setBitHigh(GEN_CFG_AES_LOW_REG, 0x10, 4);
     
     
     while (!checkForIDLE()) {
@@ -573,7 +443,7 @@ void DW3000Class::init() {
         delay(100);
     }
     
-    softReset(); //MOD2
+    softReset();
 
     delay(200);
     
@@ -588,90 +458,54 @@ void DW3000Class::init() {
     bias_tune = (bias_tune >> 16) & BIAS_CTRL_BIAS_MASK;
     
     if (ldo_low != 0 && ldo_high != 0 && bias_tune != 0) {
-        int bias_data[] = {
-            bias_tune & 0xFF,
-            (bias_tune >> 8) & 0xFF
-        };
-        write(0x11, 0x1F, bias_data, 2);
+        write(0x11, 0x1F, bias_tune);
 
-        int ldo_kick_data[] = { 0x00, 0x01 };
-        write(0x0B, 0x08, ldo_kick_data, 2);
+        write(0x0B, 0x08, 0x0100);
     }
 
-    int xtrim_value[1];
-    xtrim_value[0] = readOTP(0x1E);
+    int xtrim_value = readOTP(0x1E);
     
-    xtrim_value[0] = (xtrim_value[0] == 0 ? 0x2E : xtrim_value[0]);
+    xtrim_value = xtrim_value == 0 ? 0x2E : xtrim_value; //if xtrim_value from OTP memory is 0, choose 0x2E as default value
 
-    write(FS_CTRL_REG, 0x14, xtrim_value, 1);
+    write(FS_CTRL_REG, 0x14, xtrim_value);
     if (DEBUG_OUTPUT) Serial.print("xtrim: ");
-    if (DEBUG_OUTPUT) Serial.println(xtrim_value[0]);
-    
-
+    if (DEBUG_OUTPUT) Serial.println(xtrim_value);
     
     writeSysConfig();
     
-    int data1[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}; //0xF2,0x2B,0x0,0x0,0x0,0x2
-    DW3000Class::write(0x0, 0x3C, data1, 6); //Set Status Enable
+    write(0x00, 0x3C, 0xFFFFFFFF); //Set Status Enable
+    write(0x00, 0x40, 0xFFFF);
 
-    int data3[] = {0x00,0x9, 0x0};
-    DW3000Class::write(0xA, 0x0, data3, 3); //AON_DIG_CFG register setup; sets up auto-rx calibration and on-wakeup GO2IDLE  //0xA
+    write(0x0A, 0x00, 0x000900, 3); //AON_DIG_CFG register setup; sets up auto-rx calibration and on-wakeup GO2IDLE  //0xA
     
     /*
      * Set RX and TX config
      */
-    int data4[] = {0x40,0x02,0x00,0x10}; //DGC_CFG0  //0x3 //MOD
-    DW3000Class::write(0x3, 0x1C, data4, 4);
+    write(0x3, 0x1C, 0x10000240); //DGC_CFG0
 
-    int data5[] = { 0x89,0xa4,0x6d,0x1b }; //DGC_CFG1
-    DW3000Class::write(0x3, 0x20, data5, 4);
+    write(0x3, 0x20, 0x1B6DA489); //DGC_CFG1
 
-    int data6[] = { 0xFD,0xC0,0x01,0x00 }; //DGC_LUT_0
-    DW3000Class::write(0x3, 0x38, data6, 4);
+    write(0x3, 0x38, 0x0001C0FD); //DGC_LUT_0
    
-    int data7[] = { 0x3E,0xC4,0x01,0x00 }; //DGC_LUT_1
-    DW3000Class::write(0x3, 0x3C, data7, 4);
+    write(0x3, 0x3C, 0x0001C43E); //DGC_LUT_1
     
-    int data8[] = { 0xBE,0xC6,0x01,0x00 }; //DGC_LUT_2
-    DW3000Class::write(0x3, 0x40, data8, 4);
+    write(0x3, 0x40, 0x0001C6BE); //DGC_LUT_2
     
-    int data9[] = { 0x7E,0xC7,0x01,0x00 }; //DGC_LUT_3
-    DW3000Class::write(0x3, 0x44, data9, 4);
+    write(0x3, 0x44, 0x0001C77E); //DGC_LUT_3
     
-    int data10[] = { 0x36,0xCF,0x01,0x00 }; //DGC_LUT_4
-    DW3000Class::write(0x3, 0x48, data10, 4);
+    write(0x3, 0x48, 0x0001CF36); //DGC_LUT_4
     
-    int data11[] = { 0xB5,0xCF,0x01,0x00 }; //DGC_LUT_5
-    DW3000Class::write(0x3, 0x4C, data11, 4);
+    write(0x3, 0x4C, 0x0001CFB5); //DGC_LUT_5
     
-    int data12[] = { 0xF5,0xCF,0x01,0x00 }; //DGC_LUT_6
-    DW3000Class::write(0x3, 0x50, data12, 4);
+    write(0x3, 0x50, 0x0001CFF5); //DGC_LUT_6
 
-    int data13[] = { 0xE5,0xE5 };
-    DW3000Class::write(0x3, 0x18, data13, 2); //THR_64 value set to 0x32
-    int f = DW3000Class::read(0x4, 0x20);
+    write(0x3, 0x18, 0xE5E5); //THR_64 value set to 0x32
+    int f = read(0x4, 0x20);
 
     //SET PAC TO 32 (0x00) reg:06:00 bits:1-0, bit 4 to 0 (00001100) (0xC)
-    int data14[] = { 0x1C, 0x10, 0x81 };
-    DW3000Class::write(0x6, 0x0, data14, 3); 
+    write(0x6, 0x0, 0x81101C); 
 
-    int data15[]{ 0x01, 0x40 };
-    write(0x01, 0x04, data15, 2); //change tx antenna delay to 0x4001
-
-    int data16[] = { 0x4 }; //enable temp sensor readings
-    write(0x07, 0x34, data16, 1);
-
-    //SET PREAMBLE CODE (RX_PCODE, TX_PCODE) TO 10 (reg:01:14) //Standard SFD Type is 11 (data: 0x56, 0x5), trying 00 (0x50, 0x5)
-    //int data16[] = { 0x4A, 0x09 };
-    //DW3000Class::write(0x1, 0x14, data16, 2);  //0x1
-
-    // write preamble length, frame length, data rate and prf in TX_FCTRL  //PSR = 1024, TXFLEN = 3 Byte (1 data, 2 CRC) TXBR = 6.81Mb/s, TR Bit enabled, FINE_PLEN = 0x0
-    // reg:00:24 bits 0 - 25
-    /*int data27[] = {0x03, 0x2C};
-    DW3000Class::write(0x0, 0x24, data27, 2);*/
-
-
-    
+    write(0x07, 0x34, 0x4); //enable temp sensor readings
 
 
     /*
@@ -679,18 +513,11 @@ void DW3000Class::init() {
      */
 
 
-    int data17[] = {0x14};
-    DW3000Class::write(0x7, 0x48, data17, 1); //LDO_RLOAD to 0x14 //0x7
-    int data18[] = { 0xE };
-    DW3000Class::write(0x7, 0x1A, data18, 1); //RF_TX_CTRL_1 to 0x0E
-    int data19[] = { 0x34,0x11,0x07,0x1C };
-    DW3000Class::write(0x7, 0x1C, data19, 4); //RF_TX_CTRL_2 to 0x1C071134 (due to channel 5, else (9) to 0x1C010034)
-
-    int data20[] = { 0x3C,0x1F };
-    DW3000Class::write(0x9, 0x0, data20, 2); //PLL_CFG to 0x1F3C (due to channel 5, else (9) to 0x0F3C)  //0x9
-
-    int data21[] = { 0x81 };
-    DW3000Class::write(0x9, 0x8, data21, 1); //PLL_CAL config to 0x81
+    DW3000Class::write(0x07, 0x48, 0x14); //LDO_RLOAD to 0x14 //0x7
+    DW3000Class::write(0x07, 0x1A, 0x0E); //RF_TX_CTRL_1 to 0x0E
+    DW3000Class::write(0x07, 0x1C, 0x1C071134); //RF_TX_CTRL_2 to 0x1C071134 (due to channel 5, else (9) to 0x1C010034)
+    DW3000Class::write(0x09, 0x00, 0x1F3C); //PLL_CFG to 0x1F3C (due to channel 5, else (9) to 0x0F3C)  //0x9
+    DW3000Class::write(0x09, 0x80, 0x81); //PLL_CAL config to 0x81
 
     int data22[] = { 0x11 };
     int data23[] = { 0x0 }; //if finished with calibration go back in cal_mode //also used to reset LDO_CTRL to 0x0
@@ -717,62 +544,46 @@ void DW3000Class::init() {
         }
     }*/
     
-    if (DW3000Class::read(0x4, 0x20)) {
-        int data23[] = {0x1};
-        DW3000Class::write(0x4, 0x20, data23, 1);
+    if (read(0x4, 0x20)) {
+        write(0x4, 0x20, 0x01);
         Serial.println("[INFO] RX Calibration was successful.");
     }
-    f = DW3000Class::read(0x4, 0x20);
+    f = read(0x4, 0x20);
     
-    DW3000Class::write(0x4, 0x0C, data23, 1); //Reset antenna calibration to standard mode
+    write(0x4, 0x0C, 0x00, 1); //Reset antenna calibration to standard mode
     
-    int data24[] = {0x00, 0x02, 0xB4};
-    DW3000Class::write(0x11, 0x04, data24, 3); 
+    write(0x11, 0x04, 0xB40200); 
 
-    int data25[] = { 0x38, 0x07, 0x03, 0x80 };
-    DW3000Class::write(0x11, 0x08, data25, 4);
+    write(0x11, 0x08, 0x80030738);
     Serial.println("[INFO] Initialization finished.\n");
 }
 
 void DW3000Class::setupGPIO() {
-    int data1[] = { 0xF0 };
-    write(0x05, 0x08, data1, 1); //Set GPIO0 - GPIO3 as OUTPUT on DW3000
+    write(0x05, 0x08, 0xF0); //Set GPIO0 - GPIO3 as OUTPUT on DW3000
 }
 
 void DW3000Class::pullLEDHigh(int led) { //led 0 - 2 possible
-    if (led > 7) return;
+    if (led > 2) return;
     led_status = led_status + (1 << led);
-    int data1[] = { led_status };
-    write(0x05, 0x0C, data1, 1);
+    write(0x05, 0x0C, led_status);
 }
 
 void DW3000Class::pullLEDLow(int led) { //led 0 - 2 possible
-    if (led > 7) return;
+    if (led > 2) return;
     led_status = led_status & ~((int)1 << led); //https://stackoverflow.com/questions/47981/how-to-set-clear-and-toggle-a-single-bit
-    int data1[] = { led_status };
-    write(0x05, 0x0C, data1, 1);
+    write(0x05, 0x0C, led_status);
 }
 
 void DW3000Class::writeTXDelay(int delay) {
-    int data[] = {
-        delay & 0xFF,
-        (delay & 0xFF00) >> 8,
-        (delay & 0xFF0000) >> 16,
-        (delay & 0xFF000000) >> 24,
-    };
-    write(0x00, 0x2C, data, 4);
-    //Serial.print("TX Delay: ");
-    //Serial.println(read(0x00, 0x2C));
+    write(0x00, 0x2C, delay);
 }
 
 void DW3000Class::delayedTXThenRX() { //Activates Transmission with delay programmed through writeTXDelay() and goes to receiver immediately
-    int data[] = { 1, 1, 1, 1 };
-    writeShortCommand(data, 4);
+    writeFastCommand(0x0F);
 }
 
 void DW3000Class::delayedTX() {
-    int data[] = { 1, 1 };
-    writeShortCommand(data, 2);
+    writeFastCommand(0x3);
 }
 
 unsigned long long DW3000Class::readRXTimestamp() {
@@ -780,9 +591,6 @@ unsigned long long DW3000Class::readRXTimestamp() {
     unsigned long long ts_high = read(0x0C, 0x04) & 0xFF;
 
     unsigned long long rx_timestamp = (ts_high << 32) | ts_low;
-    /*Serial.print("RX: ");
-    Serial.println(ts_low);
-    Serial.println(ts_high); */
 
     return rx_timestamp;
 }
@@ -793,9 +601,6 @@ unsigned long long DW3000Class::readTXTimestamp() {
     unsigned long long ts_high = read(0x00, 0x78) & 0xFF;
 
     unsigned long long tx_timestamp = (ts_high << 32) + ts_low;
-    /*Serial.print("TX: ");
-    Serial.println(ts_low);
-    Serial.println(ts_high);*/
 
     return tx_timestamp;
 }
@@ -808,26 +613,28 @@ void DW3000Class::prepareDelayedTX() {
 
     long long calc_tx_timestamp = ((rx_ts + TRANSMIT_DELAY) & ~TRANSMIT_DIFF) + antenna_delay;
 
-    int calc_tx_stamp_data[5]; // Size of 5 for 40 Bit Timestamp (40 bit / 8 = 5 Bytes)
-    for (int i = 0; i < 5; i++){
-        calc_tx_stamp_data[i] = (calc_tx_timestamp >> i * 8) & 0xFF;
+    long long reply_delay = calc_tx_timestamp - rx_ts;
+
+    if (rx_ts > calc_tx_timestamp) {
+        reply_delay = 0;
     }
 
-    int rx_stamp_data[5];
-    for (int i = 0; i < 5; i++){
-        rx_stamp_data[i] = (rx_ts >> i * 8) & 0xFF;
-    }
-
-    /* FRAME CONTENTS:
-    * 0x00 - 0x01: [Reserved] 16 Bit for sender-ID     //TODO add functionality to first 16 bit
-    * 0x02 - 0x06: [Used] Calculated Transmit Timestamp
-    * 0x07 - 0x0B: [Used] RX Timestamp Time
+    /*
+    * PAYLOAD DESIGN:
+    +------+-----------------------------------------------------------------------+-------------------------------+-------------------------------+------+------+------+-----+
+    | Byte |                                 1 (0x00)                              |           2 (0x01)            |           3 (0x02)            |     4 - 6 (0x03-0x05)    |
+    +------+-----+-----+----+----------+----------+----------+----------+----------+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+------+------+------+-----+
+    | Bits |  1  |  2  |  3 |     4    |     5    |     6    |     7    |     8    | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |                          |
+    +------+-----+-----+----+----------+----------+----------+----------+----------+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+--------------------------+
+    |      | Mode bits:     | Reserved | Reserved | Reserved | Reserved | Reserved |           Sender ID           |         Destination ID        | Internal Delay / Payload |
+    |      | 0 - Standard   |          |          |          |          |          |                               |                               |                          |
+    |      | 1-7 - Reserved |          |          |          |          |          |                               |                               |                          |
+    +------+----------------+----------+----------+----------+----------+----------+-------------------------------+-------------------------------+--------------------------+
     */
 
-    write(0x14, 0x02, calc_tx_stamp_data, 5);
-    write(0x14, 0x07, rx_stamp_data, 5);
+    write(0x14, 0x03, reply_delay);
 
-    setFrameLength(12); // (id(16 bits) + tx(40 bits) + rx(40 bits)) / 8 = 12 Bytes
+    setFrameLength(7); // Control Byte (1 Byte) + Sender ID (1 Byte) + Dest. ID (1 Byte) + Reply Delay (4 Bytes) = 7 Bytes
 
     //Write delay to register 
     writeTXDelay(exact_tx_timestamp);
@@ -842,28 +649,27 @@ void DW3000Class::calculateTXRXdiff() { //calc diff on PING side
     long double clock_offset = 1.0 + clk_offset;
 
     /*
-    * Get RX and TX times from PONG side
-    */
+       * PAYLOAD DESIGN:
+       +------+-----------------------------------------------------------------------+-------------------------------+-------------------------------+------+------+------+-----+
+       | Byte |                                 1 (0x00)                              |           2 (0x01)            |           3 (0x02)            |     4 - 6 (0x03-0x05)    |
+       +------+-----+-----+----+----------+----------+----------+----------+----------+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+------+------+------+-----+
+       | Bits |  1  |  2  |  3 |     4    |     5    |     6    |     7    |     8    | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |                          |
+       +------+-----+-----+----+----------+----------+----------+----------+----------+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+--------------------------+
+       |      | Mode bits:     | Reserved | Reserved | Reserved | Reserved | Reserved |           Sender ID           |         Destination ID        | Internal Delay / Payload |
+       |      | 0 - Standard   |          |          |          |          |          |                               |                               |                          |
+       |      | 1-7 - Reserved |          |          |          |          |          |                               |                               |                          |
+       +------+----------------+----------+----------+----------+----------+----------+-------------------------------+-------------------------------+--------------------------+
+       */
 
-    unsigned int tx_low = read(RX_BUFFER_0_REG, 0x02);
-    unsigned int tx_high = read(RX_BUFFER_0_REG, 0x06) & 0xFF;
-
-    long long pong_tx = (long long)tx_high << 32 | tx_low;
-
-    unsigned int rx_low = read(RX_BUFFER_0_REG, 0x07);
-    unsigned int rx_high = read(RX_BUFFER_0_REG, 0x0B) & 0xFF;
-
-    long long pong_rx = (long long)rx_high << 32 | rx_low;
+    long long t_reply = read(RX_BUFFER_0_REG, 0x03);
 
     /*
     * Calculate round trip time (see DW3000 User Manual page 248 for more)
     */
 
-    if (pong_tx < pong_rx || ping_rx < ping_tx) { // return if the data would result in incorrect/negative results
+    if (t_reply == 0) { //t_reply is 0 when the calculation could not be done on the PONG side
         return;
     }
-
-    long long t_reply = pong_tx - pong_rx;
 
     long long t_round = ping_rx - ping_tx;
 
@@ -877,77 +683,20 @@ void DW3000Class::calculateTXRXdiff() { //calc diff on PING side
     Serial.println("cm");
 }
 
-/*void DW3000Class::interruptDetect() { //On calling interrupt
-    Serial.println("\n\nCALLED INTERRUPT\n\n");
+void DW3000Class::writeFastCommand(int cmd) {
+    if (DEBUG_OUTPUT) Serial.print("[INFO] Executing short command: ");
 
-    int irq_reason = getIRQBit();
-    switch (irq_reason) {
-    case 0:
-        Serial.println("Interruption cause: Interruption Cause not given! Check First and Second Sector Bits.");
-        break;
-    case 1:
-        Serial.println("Interruption cause: TX finished");
-        break;
-    case 2:
-        Serial.println("Interruption cause: RX Data ready");
-        DW3000Class::rx_rec = true;
-        readRXBuffer();
-        break;
-    case 3:
-        Serial.println("Interruption cause: Preamble detected");
-        //initiateRX();
-        digitalWrite(TX_LED, HIGH);
-        digitalWrite(RX_LED, HIGH);
-        delay(50);
-        digitalWrite(TX_LED, LOW);
-        digitalWrite(RX_LED, LOW);
-        break;
-    case 4:
-        Serial.println("Interruption cause: Cmd Error");
-        cmd_error = true;
-        SPI.endTransaction();
-        break;
-    default:
-        Serial.print("irq_reason got wrong value. Value: ");
-        Serial.println(irq_reason);
-        break;
-    }
-    //IRQPulled = true;
-    resetIRQStatusBits();
-    //initiateRX();
-    Serial.println("Finished interrupt. Continuing...");
-}*/
+    int header = 0;
 
+    header = header | 0x1;
+    header = header | (cmd & 0x1F) << 1;
+    header = header | 0x80;
 
-void DW3000Class::writeShortCommand(int cmd[], int cmd_len) {
-    if (DEBUG_OUTPUT) Serial.print("Short Command WRITE: ");
+    if (DEBUG_OUTPUT) Serial.println(header, BIN);
 
-    int fill_base_len = 5;
-    int fill_base[fill_base_len]; //fill leading zeros
+    int header_arr[] = { header };
 
-    for (int i = 0; i < fill_base_len; i++) {
-        if (i < fill_base_len - cmd_len) {
-            fill_base[i] = 0;
-        }
-        else {
-            fill_base[i] = cmd[i - (fill_base_len - cmd_len)];
-        }
-    }
-    int cmd_finished[8] = { 1,0 };
-    for (int i = 0; i < fill_base_len; i++) {
-        cmd_finished[i + 2] = fill_base[i];
-    }
-    cmd_finished[7] = 1;
-
-    int byteOne = 0;
-
-    for (int i = 7; i >= 0; i--) { //8 bit iteration    
-        byteOne = byteOne + cmd_finished[i] * round(pow(2, 7 - i));
-    }
-    if (DEBUG_OUTPUT) Serial.println(byteOne, HEX);
-    int bytes[] = { byteOne };
-    sendBytes(bytes, 1, 0);
-    if (DEBUG_OUTPUT) Serial.println("Finished writing to Short Command.");
+    sendBytes(header_arr, 1, 0);
 }
 
 int DW3000Class::receivedFrameSucc() { //No frame received: 0; frame received: 1; error while receiving: 2
@@ -977,23 +726,19 @@ unsigned long long DW3000Class::readRXBuffer() { // deprecated! Use read(RX_BUFF
 }
 
 void DW3000Class::standardTX() {
-    int cmd[] = { 0x01 }; //0x1
-    DW3000Class::writeShortCommand(cmd, 1);
+    DW3000Class::writeFastCommand(0x01);
 }
 
 void DW3000Class::standardRX() {
-    int cmd[] = { 1,0 }; //0x2
-    DW3000Class::writeShortCommand(cmd, 2);
+    DW3000Class::writeFastCommand(0x02);
 }
 
 void DW3000Class::TXInstantRX() { // Execute tx, then set receiver to rx instantly
-    int cmd[] = { 1, 1, 0, 0 }; //0xC
-    DW3000Class::writeShortCommand(cmd, 4);
+    DW3000Class::writeFastCommand(0x0C);
 }
 
 void DW3000Class::clearSystemStatus() {
-    int data[] = { 0xFF, 0xFF, 0x7F, 0x3F, 0xF2, 0x1F };
-    write(GEN_CFG_AES_LOW_REG, 0x44, data, 4);
+    write(GEN_CFG_AES_LOW_REG, 0x44, 0x3F7FFFFF);
 }
 
 int DW3000Class::checkForDevID() {
@@ -1012,13 +757,8 @@ void DW3000Class::setFrameLength(int frame_len) { // set Frame length in Bytes
         return;
     }
     int tmp_cfg = (curr_cfg & 0xFFFFFC00) | frame_len;
-    int data[] = {
-        tmp_cfg & 0xFF,
-        (tmp_cfg & 0xFF00) >> 8
-    };
-    int old = read(GEN_CFG_AES_LOW_REG, 0x24);
-    write(GEN_CFG_AES_LOW_REG, 0x24, data, 2);
-    int h = read(GEN_CFG_AES_LOW_REG, 0x24);
+    
+    write(GEN_CFG_AES_LOW_REG, 0x24, tmp_cfg);
 }
 
 /*
@@ -1032,8 +772,7 @@ void DW3000Class::setBit(int reg_addr, int sub_addr, int shift, bool b) {
     else {
         bitClear(tmpByte, shift);
     }
-    int data[] = { tmpByte };
-    write(reg_addr, sub_addr, data, 1);
+    write(reg_addr, sub_addr, tmpByte);
 }
 
 void DW3000Class::setBitHigh(int reg_addr, int sub_addr, int shift) {
@@ -1079,12 +818,8 @@ void DW3000Class::setPHRRate(uint8_t data) {
 }
 
 void DW3000Class::setTXAntennaDelay(int delay) {
-    int d[] = {
-        delay & 0xFF,
-        (delay & 0xFF00) >> 8
-    };
     antenna_delay = delay;
-    write(0x01, 0x04, d, 2);
+    write(0x01, 0x04, delay);
 }
 
 int DW3000Class::getTXAntennaDelay() { //DEPRECATED use antenna_delay variable instead!
@@ -1117,21 +852,19 @@ int DW3000Class::getRawClockOffset() {
 
 
 float DW3000Class::getTempInC() {
-        int data1[] = { 0x4 };
-        write(0x07, 0x34, data1, 1); //enable temp sensor readings
+        write(0x07, 0x34, 0x04); //enable temp sensor readings
 
-        int data2[] = { 0x1 };
-        write(0x08, 0x00, data2, 1); //enable poll
+        write(0x08, 0x00, 0x01); //enable poll
 
-        while (!(read(0x08, 0x04) & 0x01)) {
-        };
+        while (!(read(0x08, 0x04) & 0x01)) 
+        { };
+
         int res = read(0x08, 0x08);
         res = (res & 0xFF00) >> 8;
         int otp_temp = readOTP(0x09) & 0xFF;
         float tmp = (float)((res - otp_temp) * 1.05f) + 22.0f;
 
-        int data3[] = { 0x00 };
-        write(0x08, 0x00, data3, 1); //Reset poll enable
+        write(0x08, 0x00, 0x00, 1); //Reset poll enable
 
         return tmp;
 }

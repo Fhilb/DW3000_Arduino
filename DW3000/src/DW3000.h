@@ -64,7 +64,8 @@ class DW3000Class {
 		static unsigned long long readTXTimestamp();
 		static void calculateTXRXdiff();
 
-		static uint32_t write(int base, int sub, int* data, int data_len);
+		static uint32_t write(int base, int sub, int data, int data_len);
+		static uint32_t write(int base, int sub, int data);
 
 		static void writeTXDelay(int delay);
 		static void delayedTXThenRX();
@@ -89,14 +90,12 @@ class DW3000Class {
 		static void setBitLow(int reg_addr, int sub_addr, int shift);
 		static void setBitHigh(int reg_addr, int sub_addr, int shift);
 
-		static int* getBase(int hex_num);
-		static int* getSub(int hex_num);
+		static void writeFastCommand(int cmd);
 
-		static void writeShortCommand(int cmd[], int cmd_len);
-		static uint32_t readOrWriteFullAddress(int* base, int base_len, int* sub, int sub_len, int* data, int data_len, int readWriteBit);
+		static uint32_t readOrWriteFullAddress(uint32_t base, uint32_t sub, uint32_t data, uint32_t data_len, uint32_t readWriteBit);
+
 		static uint32_t sendBytes(int b[], int lenB, int recLen); 
 		
-		static int* hexToBin(int hex_num, int bit_size);
 		static unsigned int countBits(unsigned int number);
 
 		static bool is_anchor;

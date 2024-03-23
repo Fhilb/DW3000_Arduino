@@ -26,7 +26,6 @@ void setup()
 
   DW3000.init(); // Initialize chip (write default values, calibration, etc.)
   DW3000.setupGPIO(); //Setup the DW3000s GPIO pins for use of LEDs
-  DW3000.setTXAntennaDelay(0x4015); //Antenna delay is the delay between the chip initializing the send and the signal actually leaving the antenna
   
   Serial.println("> PONG with timestamp example <\n");
 
@@ -62,7 +61,7 @@ void loop()
   
     //Serial.println("\n[INFO] Sent PONG successfully.");
     
-    //DW3000.printRoundTripInformation(); // Print information on the sent data for debug purposes
+    //DW3000.calculateRXTXdiff(); // Print information on the sent data for debug purposes
     DW3000.pullLEDLow(2);
   }
   else // if rx_status returns error (2)
