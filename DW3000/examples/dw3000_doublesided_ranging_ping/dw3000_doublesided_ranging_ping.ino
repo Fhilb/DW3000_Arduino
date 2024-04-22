@@ -147,7 +147,7 @@ void loop()
     default:
       Serial.print("[ERROR] Entered unknown stage (");
       Serial.print(curr_stage);
-      Serial.println("). Reverting back to stage -1");
+      Serial.println("). Reverting back to stage 0");
       
       curr_stage = 0;
       break;
