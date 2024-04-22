@@ -31,6 +31,14 @@ class DW3000Class {
 		static void writeSysConfig();
 		static void configureAsTX();
 		static void setupGPIO();
+		static void updateDeviceID();
+
+		// Functions that are used for double-sided ranging
+		static void ds_sendFrame(int stage);
+		static void ds_sendRTInfo(int t_roundB, int t_replyB);
+		static int ds_processRTInfo(int t_roundA, int t_replyA, int t_roundB, int t_replyB, int clock_offset);
+		static int ds_getStage();
+		static void ds_sendErrorFrame();
 
 		static void setChannel(uint8_t data);
 		static void setPreambleLength(uint8_t data);
@@ -42,13 +50,23 @@ class DW3000Class {
 		static void setTXFrame(unsigned long long frame_data);
 		static void setFrameLength(int frame_len);
 		static void setTXAntennaDelay(int delay);
+		static void setMode(int mode);
+		static void setDeviceID(unsigned int addr);
+
+		static void setReceiverAddress(unsigned int addr);
+
+		static void setSevenSegmentActivated(bool status);
 
 		static int receivedFrameSucc();
 		static int sentFrameSucc();
+		static void detectedIRQ();
 
 		static int getAnchorID();
+		static double getSignalStrength();
+		static double getFirstPathSignalStrength();
 		static int getTXAntennaDelay();
-		static float getClockOffset();
+		static long double getClockOffset();
+		static long double getClockOffset(int32_t ext_clock_offset);
 		static int getRawClockOffset();
 		static float getTempInC();
 		static void printFullConfig();
@@ -64,10 +82,10 @@ class DW3000Class {
 		static unsigned long long readTXTimestamp();
 		static void calculateTXRXdiff();
 
-		static uint32_t write(int base, int sub, int data, int data_len);
-		static uint32_t write(int base, int sub, int data);
+		static uint32_t write(int base, int sub, uint32_t data, int data_len);
+		static uint32_t write(int base, int sub, uint32_t data);
 
-		static void writeTXDelay(int delay);
+		static void writeTXDelay(uint32_t delay);
 		static void delayedTXThenRX();
 		static void prepareDelayedTX();
 		static void delayedTX();
@@ -82,6 +100,12 @@ class DW3000Class {
 		static void pullLEDLow(int led);
 		//static void interruptDetect();
 
+		static double convertToCM(int dw3000_ps_units);
+
+		static void printDouble(double val, unsigned int precision, bool linebreak);
+
+		static bool getSevenSegmentStatus();
+		static void updateDisplay();
 
 	private:
 		static void clearAONConfig();
@@ -101,7 +125,6 @@ class DW3000Class {
 		static bool is_anchor;
 		static bool cmd_error;
 		static int anchor_id;
-		static void printDouble(double val, unsigned int precision, bool linebreak);
 };
 
 extern DW3000Class DW3000;

@@ -17,6 +17,14 @@ init	KEYWORD2
 writeSyConfig	KEYWORD2
 configureAsTX	KEYWORD2
 setupGPIO	KEYWORD2
+updateDeviceID	KEYWORD2
+
+ds_sendFrame	KEYWORD2
+ds_sendRTInfo	KEYWORD2
+ds_processRTInfo	KEYWORD2
+ds_getStage	KEYWORD2
+ds_sendErrorFrame	KEYWORD2
+
 setChannel	KEYWORD2
 setPreambleLength	KEYWORD2
 setPreambleCode	KEYWORD2
@@ -29,9 +37,16 @@ setFrameLength	KEYWORD2
 setTXFrame	KEYWORD2
 setFrameLength	KEYWORD2
 setTXAntennaDelay	KEYWORD2
+setMode	KEYWORD2
+setDeviceID	KEYWORD2
+setReceiverAddress	KEYWORD2
+setSevenSegmentActivated	KEYWORD2
 receivedFrameSucc	KEYWORD2
 sentFrameSucc	KEYWORD2
+detectedIRQ	KEYWORD2
 getAnchorID	KEYWORD2
+getSignalStrength	KEYWORD2
+getFirstPathSignalStrength	KEYWORD2
 getTXAntennaDelay	KEYWORD2
 getClockOfffset	KEYWORD2
 getRawClockOffset	KEYWORD2
@@ -51,7 +66,7 @@ write	KEYWORD2
 writeTXDelay	KEYWORD2
 delayedTXThenRX	KEYWORD2
 prepareDelayedTX	KEYWORD2
-delayedTX()	KEYWORD2
+delayedTX	KEYWORD2
 standardTX	KEYWORD2
 standardRX	KEYWORD2
 TXInstantRX	KEYWORD2
@@ -60,7 +75,10 @@ hardReset	KEYWORD2
 clearSystemStatus	KEYWORD2
 pullLEDHigh	KEYWORD2
 pullLEDLow	KEYWORD2
-
+convertToCM	KEYWORD2
+printDouble	KEYWORD2
+getSevenSegmentStatus	KEYWORD2
+updateDisplay	KEYWORD2
 
 
 #######################################
