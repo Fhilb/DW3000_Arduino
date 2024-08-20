@@ -23,6 +23,7 @@ ds_sendFrame	KEYWORD2
 ds_sendRTInfo	KEYWORD2
 ds_processRTInfo	KEYWORD2
 ds_getStage	KEYWORD2
+ds_isErrorFrame	KEYWORD2
 ds_sendErrorFrame	KEYWORD2
 
 setChannel	KEYWORD2

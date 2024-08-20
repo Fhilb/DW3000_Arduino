@@ -900,6 +900,10 @@ int DW3000Class::ds_getStage() {
     return read(0x12, 0x03) & 0b111;
 }
 
+bool DW3000Class::ds_isErrorFrame() {
+    return ((read(0x12, 0x00) & 0x7) == 7);
+}
+
 void DW3000Class::ds_sendErrorFrame() {
     Serial.println("[WARNING] Error Frame sent. Reverting back to stage 0.");
     setMode(7);

@@ -1,18 +1,18 @@
 #include "DW3000.h"
 
 /*
- * BE AWARE: Baud Rate got changed to 2.000.000!
- * 
- * Approach based on the application note APS011 ("SOURCES OF ERROR IN DW1000 BASED 
- * TWO-WAY RANGING (TWR) SCHEMES") 
- * 
- * see chapter 2.4 figure 6 and the corresponding description for more information
- * 
- * This approach tackles the problem of a big clock offset between the ping and pong side
- * by reducing the clock offset to a minimum. 
- * 
- * This approach is a more advanced version of the classical ping and pong with timestamp examples.
- */
+   BE AWARE: Baud Rate got changed to 2.000.000!
+
+   Approach based on the application note APS011 ("SOURCES OF ERROR IN DW1000 BASED
+   TWO-WAY RANGING (TWR) SCHEMES")
+
+   see chapter 2.4 figure 6 and the corresponding description for more information
+
+   This approach tackles the problem of a big clock offset between the ping and pong side
+   by reducing the clock offset to a minimum.
+
+   This approach is a more advanced version of the classical ping and pong with timestamp examples.
+*/
 
 static int frame_buffer = 0; // Variable to store the transmitted message
 static int rx_status; // Variable to store the current status of the receiver operation
@@ -78,7 +78,10 @@ void loop()
       if (rx_status = DW3000.receivedFrameSucc()) {
         DW3000.clearSystemStatus();
         if (rx_status == 1) { // If frame reception was successful
-          if (DW3000.ds_getStage() != 1) {
+          if (DW3000.ds_isErrorFrame()) {
+            Serial.println("[WARNING] Error frame detected! Reverting back to stage 0.");
+            curr_stage = 0;
+          } else if (DW3000.ds_getStage() != 1) {
             DW3000.ds_sendErrorFrame();
             curr_stage = 0;
           } else {
@@ -104,10 +107,13 @@ void loop()
       if (rx_status = DW3000.receivedFrameSucc()) {
         DW3000.clearSystemStatus();
         if (rx_status == 1) { // If frame reception was successful
-          if (DW3000.ds_getStage() != 3){
+          if (DW3000.ds_isErrorFrame()) {
+            Serial.println("[WARNING] Error frame detected! Reverting back to stage 0.");
+            curr_stage = 0;
+          } else if (DW3000.ds_getStage() != 3) {
             DW3000.ds_sendErrorFrame();
             curr_stage = 0;
-          }else{
+          } else {
             curr_stage = 3;
           }
         } else // if rx_status returns error (2)
