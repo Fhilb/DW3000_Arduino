@@ -75,6 +75,7 @@ class DW3000Class {
 		static unsigned long long readRXBuffer();
 		static bool checkForIDLE();
 		static int checkForDevID();
+		static bool checkSPI();
 
 		static uint32_t read(int base, int sub);
 		static uint8_t read8bit(int base, int sub);

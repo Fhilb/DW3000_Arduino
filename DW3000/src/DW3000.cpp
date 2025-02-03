@@ -876,6 +876,10 @@ int DW3000Class::checkForDevID() {
     return 1;
 }
 
+bool DW3000Class::checkSPI() {
+    int res = read(0x00, 0x00);
+    return (res > 0);
+
 void DW3000Class::setMode(int mode) {
     write(0x14, 0x00, mode & 0x7);
 }
