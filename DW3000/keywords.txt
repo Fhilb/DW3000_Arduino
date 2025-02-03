@@ -57,6 +57,7 @@ printRoundTripInformation	KEYWORD2
 readRXBuffer	KEYWORD2
 checkForIDLE	KEYWORD2
 checkForDevID	KEYWORD2
+checkSPI	KEYWORD2
 read	KEYWORD2
 read8bit	KEYWORD2
 readOTP	KEYWORD2
