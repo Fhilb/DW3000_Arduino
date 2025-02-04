@@ -2,6 +2,14 @@
 #ifndef _DW3000CONSTANTS_H_INCLUDED
 #define _DW3000CONSTANTS_H_INCLUDED
 
+#define RST_PIN 27
+#ifdef ESP32 //Define for the Makerfabs DW3000 solution
+	#define CHIP_SELECT_PIN 4
+#else //Define for any other chip, e.g. the DWM3000EVB shield with the Arduino Uno
+	#define CHIP_SELECT_PIN 10
+#endif
+
+
 #define LEN_RX_CAL_CONF 4
 #define LEN_TX_FCTRL_CONF 6
 #define LEN_AON_DIG_CFG_CONF 3

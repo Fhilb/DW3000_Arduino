@@ -17,7 +17,6 @@ init	KEYWORD2
 writeSyConfig	KEYWORD2
 configureAsTX	KEYWORD2
 setupGPIO	KEYWORD2
-updateDeviceID	KEYWORD2
 
 ds_sendFrame	KEYWORD2
 ds_sendRTInfo	KEYWORD2
@@ -33,54 +32,60 @@ setPACSize	KEYWORD2
 setDatarate	KEYWORD2
 setPHRMode	KEYWORD2
 setPHRRate	KEYWORD2
-setTXFrame	KEYWORD2
-setFrameLength	KEYWORD2
+
+setMode	KEYWORD2
 setTXFrame	KEYWORD2
 setFrameLength	KEYWORD2
 setTXAntennaDelay	KEYWORD2
-setMode	KEYWORD2
-setDeviceID	KEYWORD2
-setReceiverAddress	KEYWORD2
-setSevenSegmentActivated	KEYWORD2
+
 receivedFrameSucc	KEYWORD2
 sentFrameSucc	KEYWORD2
-detectedIRQ	KEYWORD2
-getAnchorID	KEYWORD2
+checkForIDLE	KEYWORD2
+checkSPI	KEYWORD2
+
 getSignalStrength	KEYWORD2
 getFirstPathSignalStrength	KEYWORD2
 getTXAntennaDelay	KEYWORD2
 getClockOfffset	KEYWORD2
 getRawClockOffset	KEYWORD2
 getTempInC	KEYWORD2
-printFullConfig	KEYWORD2
-printRoundTripInformation	KEYWORD2
-readRXBuffer	KEYWORD2
-checkForIDLE	KEYWORD2
-checkForDevID	KEYWORD2
-checkSPI	KEYWORD2
+
+readRXTimestamp	KEYWORD2
+readTXTimestamp	KEYWORD2
+
+write	KEYWORD2
 read	KEYWORD2
 read8bit	KEYWORD2
 readOTP	KEYWORD2
-readRXTimestamp	KEYWORD2
-readTXTimestamp	KEYWORD2
-calculateTXRXdiff	KEYWORD2
-write	KEYWORD2
+
 writeTXDelay	KEYWORD2
-delayedTXThenRX	KEYWORD2
 prepareDelayedTX	KEYWORD2
+
+delayedTXThenRX	KEYWORD2
 delayedTX	KEYWORD2
 standardTX	KEYWORD2
 standardRX	KEYWORD2
 TXInstantRX	KEYWORD2
+
 softReset	KEYWORD2
 hardReset	KEYWORD2
 clearSystemStatus	KEYWORD2
+
 pullLEDHigh	KEYWORD2
 pullLEDLow	KEYWORD2
+
 convertToCM	KEYWORD2
+calculateTXRXdiff	KEYWORD2
+
+printRoundTripInformation	KEYWORD2
 printDouble	KEYWORD2
-getSevenSegmentStatus	KEYWORD2
-updateDisplay	KEYWORD2
+
+
+
+
+
+
+
 
 
 #######################################
