@@ -64,7 +64,5 @@ Uses all the given parameters to calculate the distance between the chips after 
 
 Should be processed by convertToCM() to get a usable result.
 
-
-## Current problems
-- [x] ~~After uploading code to your chip, you need to unplug and replug the chip for the example to work.~~ (Fixed by adding hardReset() function)
-- [x] ~~Write method isn't user-friendly~~ (Updated)
+### checkSPI()
+Checks if the Arduino can establish a connection to the DW3000 chip. Returns True if so, False if not.
