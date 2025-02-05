@@ -1114,6 +1114,33 @@ void DW3000Class::printDouble(double val, unsigned int precision, bool linebreak
 
 
 
+/*
+ #####  Fast Commands  #####
+*/
+
+
+/*
+ Writes a Fast Command to the chip (See DW3000 User Manual chapter 9 for more)
+ @param cmd The command that should be sent
+*/
+void DW3000Class::writeFastCommand(int cmd) {
+    if (DEBUG_OUTPUT) Serial.print("[INFO] Executing short command: ");
+
+    int header = 0;
+
+    header = header | 0x1;
+    header = header | (cmd & 0x1F) << 1;
+    header = header | 0x80;
+
+    if (DEBUG_OUTPUT) Serial.println(header, BIN);
+
+    int header_arr[] = { header };
+
+    sendBytes(header_arr, 1, 0);
+}
+
+
+
 
 
 /*
@@ -1165,33 +1192,6 @@ void DW3000Class::setBitHigh(int reg_addr, int sub_addr, int shift) {
 */
 void DW3000Class::setBitLow(int reg_addr, int sub_addr, int shift) {
     setBit(reg_addr, sub_addr, shift, 0);
-}
-
-
-
-/*
- #####  Fast Commands  #####
-*/
-
-
-/*
- Writes a Fast Command to the chip (See DW3000 User Manual chapter 9 for more)
- @param cmd The command that should be sent
-*/
-void DW3000Class::writeFastCommand(int cmd) {
-    if (DEBUG_OUTPUT) Serial.print("[INFO] Executing short command: ");
-
-    int header = 0;
-
-    header = header | 0x1;
-    header = header | (cmd & 0x1F) << 1;
-    header = header | 0x80;
-
-    if (DEBUG_OUTPUT) Serial.println(header, BIN);
-
-    int header_arr[] = { header };
-
-    sendBytes(header_arr, 1, 0);
 }
 
 
