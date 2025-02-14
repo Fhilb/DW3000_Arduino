@@ -20,8 +20,8 @@
 DW3000Class DW3000;
 
 #define DEBUG_OUTPUT 0 // Turn to 1 to get all reads, writes, etc. as info in the console
+#define ANTENNA_DELAY 0x3FCA // For calibration purposes; the smaller the number, the longer the ranging results
 
-int ANTENNA_DELAY = 0x3FCA; // For calibration purposes; the smaller the number, the longer the ranging results
 int led_status = 0;
 
 // Initial Radio Configuration
@@ -371,6 +371,10 @@ void DW3000Class::ds_sendFrame(int stage) {
 */
 void DW3000Class::ds_sendRTInfo(int t_roundB, int t_replyB) {
     setMode(1);
+    int destination = 0x2;
+    int sender = 0x1;
+    write(0x14, 0x01, destination & 0xFF);
+    write(0x14, 0x02, sender & 0xFF);
     write(0x14, 0x03, 4);
     write(0x14, 0x04, t_roundB);
     write(0x14, 0x08, t_replyB);
@@ -438,7 +442,7 @@ void DW3000Class::ds_sendErrorFrame() {
     Serial.println("[WARNING] Error Frame sent. Reverting back to stage 0.");
     setMode(7);
     setFrameLength(3);
-    TXInstantRX();
+    standardTX();
 }
 
 
@@ -1114,33 +1118,6 @@ void DW3000Class::printDouble(double val, unsigned int precision, bool linebreak
 
 
 
-/*
- #####  Fast Commands  #####
-*/
-
-
-/*
- Writes a Fast Command to the chip (See DW3000 User Manual chapter 9 for more)
- @param cmd The command that should be sent
-*/
-void DW3000Class::writeFastCommand(int cmd) {
-    if (DEBUG_OUTPUT) Serial.print("[INFO] Executing short command: ");
-
-    int header = 0;
-
-    header = header | 0x1;
-    header = header | (cmd & 0x1F) << 1;
-    header = header | 0x80;
-
-    if (DEBUG_OUTPUT) Serial.println(header, BIN);
-
-    int header_arr[] = { header };
-
-    sendBytes(header_arr, 1, 0);
-}
-
-
-
 
 
 /*
@@ -1192,6 +1169,33 @@ void DW3000Class::setBitHigh(int reg_addr, int sub_addr, int shift) {
 */
 void DW3000Class::setBitLow(int reg_addr, int sub_addr, int shift) {
     setBit(reg_addr, sub_addr, shift, 0);
+}
+
+
+
+/*
+ #####  Fast Commands  #####
+*/
+
+
+/*
+ Writes a Fast Command to the chip (See DW3000 User Manual chapter 9 for more)
+ @param cmd The command that should be sent
+*/
+void DW3000Class::writeFastCommand(int cmd) {
+    if (DEBUG_OUTPUT) Serial.print("[INFO] Executing short command: ");
+
+    int header = 0;
+
+    header = header | 0x1;
+    header = header | (cmd & 0x1F) << 1;
+    header = header | 0x80;
+
+    if (DEBUG_OUTPUT) Serial.println(header, BIN);
+
+    int header_arr[] = { header };
+
+    sendBytes(header_arr, 1, 0);
 }
 
 

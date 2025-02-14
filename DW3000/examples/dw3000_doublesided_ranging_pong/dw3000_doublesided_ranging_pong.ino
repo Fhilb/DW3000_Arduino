@@ -81,8 +81,10 @@ void loop()
           if (DW3000.ds_isErrorFrame()) {
             Serial.println("[WARNING] Error frame detected! Reverting back to stage 0.");
             curr_stage = 0;
+            DW3000.standardRX();
           } else if (DW3000.ds_getStage() != 1) {
             DW3000.ds_sendErrorFrame();
+            DW3000.standardRX();
             curr_stage = 0;
           } else {
             curr_stage = 1;
@@ -110,8 +112,10 @@ void loop()
           if (DW3000.ds_isErrorFrame()) {
             Serial.println("[WARNING] Error frame detected! Reverting back to stage 0.");
             curr_stage = 0;
+            DW3000.standardRX();
           } else if (DW3000.ds_getStage() != 3) {
             DW3000.ds_sendErrorFrame();
+            DW3000.standardRX();
             curr_stage = 0;
           } else {
             curr_stage = 3;
@@ -136,6 +140,7 @@ void loop()
       Serial.println("). Reverting back to stage 0");
 
       curr_stage = 0;
+      DW3000.standardRX();
       break;
   }
 }

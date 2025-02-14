@@ -110,14 +110,14 @@ class DW3000Class {
 		static void printRoundTripInformation();
 		static void printDouble(double val, unsigned int precision, bool linebreak);
 
-		// Fast Commands
-		static void writeFastCommand(int cmd);
-
 	private:
 		// Single Bit Settings
 		static void setBit(int reg_addr, int sub_addr, int shift, bool b);
 		static void setBitLow(int reg_addr, int sub_addr, int shift);
 		static void setBitHigh(int reg_addr, int sub_addr, int shift);
+
+		// Fast Commands
+		static void writeFastCommand(int cmd);
 
 		// SPI Interaction
 		static uint32_t readOrWriteFullAddress(uint32_t base, uint32_t sub, uint32_t data, uint32_t data_len, uint32_t readWriteBit);

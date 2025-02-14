@@ -2,6 +2,7 @@
 #ifndef _DW3000CONSTANTS_H_INCLUDED
 #define _DW3000CONSTANTS_H_INCLUDED
 
+// SPI Setup
 #define RST_PIN 27
 #ifdef ESP32 //Define for the Makerfabs DW3000 solution
 	#define CHIP_SELECT_PIN 4
