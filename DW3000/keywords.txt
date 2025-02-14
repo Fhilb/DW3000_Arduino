@@ -11,13 +11,17 @@ DW3000	KEYWORD1
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
+# Chip Setup
 spiSelect	KEYWORD2
+
 begin	KEYWORD2
 init	KEYWORD2
+
 writeSyConfig	KEYWORD2
 configureAsTX	KEYWORD2
 setupGPIO	KEYWORD2
 
+# Double-Sided Ranging
 ds_sendFrame	KEYWORD2
 ds_sendRTInfo	KEYWORD2
 ds_processRTInfo	KEYWORD2
@@ -25,6 +29,7 @@ ds_getStage	KEYWORD2
 ds_isErrorFrame	KEYWORD2
 ds_sendErrorFrame	KEYWORD2
 
+# Radio Settings
 setChannel	KEYWORD2
 setPreambleLength	KEYWORD2
 setPreambleCode	KEYWORD2
@@ -33,60 +38,67 @@ setDatarate	KEYWORD2
 setPHRMode	KEYWORD2
 setPHRRate	KEYWORD2
 
+# Protocol Settings
 setMode	KEYWORD2
 setTXFrame	KEYWORD2
 setFrameLength	KEYWORD2
 setTXAntennaDelay	KEYWORD2
+setSenderID	KEYWORD2
+setDestinationID	KEYWORD2
 
+# Status Checks
 receivedFrameSucc	KEYWORD2
 sentFrameSucc	KEYWORD2
+getSenderID	KEYWORD2
+getDestinationID	KEYWORD2
 checkForIDLE	KEYWORD2
 checkSPI	KEYWORD2
 
+# Radio Analytics
 getSignalStrength	KEYWORD2
 getFirstPathSignalStrength	KEYWORD2
 getTXAntennaDelay	KEYWORD2
-getClockOfffset	KEYWORD2
+getClockOffset	KEYWORD2
 getRawClockOffset	KEYWORD2
 getTempInC	KEYWORD2
 
 readRXTimestamp	KEYWORD2
 readTXTimestamp	KEYWORD2
 
+# Chip Interaction
 write	KEYWORD2
+
 read	KEYWORD2
 read8bit	KEYWORD2
 readOTP	KEYWORD2
 
+# Delayed Sending Settings
 writeTXDelay	KEYWORD2
 prepareDelayedTX	KEYWORD2
 
+# Radio Stage Settings / Transfer and Receive Modes
 delayedTXThenRX	KEYWORD2
 delayedTX	KEYWORD2
 standardTX	KEYWORD2
 standardRX	KEYWORD2
 TXInstantRX	KEYWORD2
 
+# DW3000 Firmware Interaction
 softReset	KEYWORD2
 hardReset	KEYWORD2
 clearSystemStatus	KEYWORD2
 
+# Hardware Status Information
 pullLEDHigh	KEYWORD2
 pullLEDLow	KEYWORD2
 
+# Calculation and Conversion
 convertToCM	KEYWORD2
 calculateTXRXdiff	KEYWORD2
 
+# Printing
 printRoundTripInformation	KEYWORD2
 printDouble	KEYWORD2
-
-
-
-
-
-
-
-
 
 #######################################
 # Constants (LITERAL1)
