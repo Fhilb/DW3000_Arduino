@@ -55,10 +55,14 @@ class DW3000Class {
 		static void setTXFrame(unsigned long long frame_data);
 		static void setFrameLength(int frame_len);
 		static void setTXAntennaDelay(int delay);
+		static void setSenderID(int senderID);
+		static void setDestinationID(int destID);
 
 		// Status Checks
 		static int receivedFrameSucc();
 		static int sentFrameSucc();
+		static int getSenderID();
+		static int getDestinationID();
 		static bool checkForIDLE();
 		static bool checkSPI();
 

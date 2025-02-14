@@ -24,6 +24,9 @@ DW3000Class DW3000;
 
 int led_status = 0;
 
+int destination = 0x0;  // Default Values for Destination and Sender IDs
+int sender = 0x0;
+
 // Initial Radio Configuration
 int DW3000Class::config[] = {
     CHANNEL_5,           // Channel
@@ -347,6 +350,8 @@ void DW3000Class::setupGPIO() {
 */
 void DW3000Class::ds_sendFrame(int stage) {
     setMode(1);
+    write(0x14, 0x01, sender & 0xFF);
+    write(0x14, 0x02, destination & 0xFF);
     write(0x14, 0x03, stage & 0x7);
     setFrameLength(4);
 
@@ -371,8 +376,6 @@ void DW3000Class::ds_sendFrame(int stage) {
 */
 void DW3000Class::ds_sendRTInfo(int t_roundB, int t_replyB) {
     setMode(1);
-    int destination = 0x2;
-    int sender = 0x1;
     write(0x14, 0x01, destination & 0xFF);
     write(0x14, 0x02, sender & 0xFF);
     write(0x14, 0x03, 4);
@@ -567,6 +570,22 @@ void DW3000Class::setTXAntennaDelay(int delay) {
     write(0x01, 0x04, delay);
 }
 
+/*
+ Set the chips sender ID. As long as the value is not changed, it won't be changed by the program.
+ @param senderID The ID that should be set. Can be between 0 and 255. Default is 0
+*/
+void DW3000Class::setSenderID(int senderID) {
+    sender = senderID;
+}
+
+/*
+ Set the destination ID. As long as the value is not changed, it won't be changed by the program. If you want to send a second frame, it will still hold the same destination ID!
+ @param destID The ID that the frame should be sent to. Can be between 0 and 255. Default is 0
+*/
+void DW3000Class::setDestinationID(int destID) {
+    destination = destID;
+}
+
 
 
 /*
@@ -599,6 +618,22 @@ int DW3000Class::sentFrameSucc() { //No frame sent: 0; frame sent: 1; error whil
         return 1;
     }
     return 0;
+}
+
+/*
+ Returns the senderID of the received frame.
+ @return senderID of the received frame by reading out the frames data
+*/
+int DW3000Class::getSenderID() {
+    return read(0x12, 0x01) & 0xFF;
+}
+
+/*
+ Returns the destinationID of the received frame.
+ @return destinationID of the received frame by reading out the frames data
+*/
+int DW3000Class::getDestinationID() {
+    return read(0x12, 0x02) & 0xFF;
 }
 
 /*
@@ -886,6 +921,8 @@ void DW3000Class::prepareDelayedTX() {
     * 7 - Error
     */
 
+    write(0x14, 0x01, sender & 0xFF);
+    write(0x14, 0x02, destination & 0xFF);
     write(0x14, 0x03, reply_delay); //set frame content
 
     setFrameLength(7); // Control Byte (1 Byte) + Sender ID (1 Byte) + Dest. ID (1 Byte) + Reply Delay (4 Bytes) = 7 Bytes
