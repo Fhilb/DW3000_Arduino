@@ -3,18 +3,11 @@
 #define _DW3000CONSTANTS_H_INCLUDED
 
 // SPI Setup
-#ifndef RST_PIN
-#define RST_PIN 15
-#endif
-#ifdef ESP32 // Define for the Makerfabs DW3000 solution
-#ifndef CHIP_SELECT_PIN
-#define CHIP_SELECT_PIN 5
-#endif
-#else // Define for any other chip, e.g. the DWM3000EVB shield with the Arduino
-      // Uno
-#ifndef CHIP_SELECT_PIN
-#define CHIP_SELECT_PIN 10
-#endif
+#define RST_PIN 27
+#ifdef ESP32 //Define for the Makerfabs DW3000 solution
+	#define CHIP_SELECT_PIN 4
+#else //Define for any other chip, e.g. the DWM3000EVB shield with the Arduino Uno
+	#define CHIP_SELECT_PIN 10
 #endif
 
 
