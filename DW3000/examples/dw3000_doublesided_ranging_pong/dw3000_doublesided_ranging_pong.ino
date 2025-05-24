@@ -40,10 +40,17 @@ void setup()
   DW3000.begin(); // Init SPI
   DW3000.hardReset(); // hard reset in case that the chip wasn't disconnected from power
   delay(200); // Wait for DW3000 chip to wake up
+
+  if(!DW3000.checkSPI())
+  {
+    Serial.println("[ERROR] Could not establish SPI Connection to DW3000! Please make sure that all pins are set correctly.");
+    while(100);
+  }
+  
   while (!DW3000.checkForIDLE()) // Make sure that chip is in IDLE before continuing
   {
     Serial.println("[ERROR] IDLE1 FAILED\r");
-    while (100);
+    delay(1000);
   }
   DW3000.softReset(); // Reset in case that the chip wasn't disconnected from power
   delay(200); // Wait for DW3000 chip to wake up
